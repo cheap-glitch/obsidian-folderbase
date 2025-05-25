@@ -1,0 +1,11 @@
+{
+	"id": "obsidian-folderbase",
+	"name": "Folderbase",
+	"version": "0.1.0",
+	"minAppVersion": "0.15.0",
+	"description": "TODO",
+	"author": "cheap-glitch",
+	"authorUrl": "https://obsidian.md",
+	"fundingUrl": "https://obsidian.md/pricing",
+	"isDesktopOnly": true
+}
