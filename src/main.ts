@@ -1,8 +1,11 @@
-import { normalizePath, Plugin, TFile } from 'obsidian';
+import { normalizePath, Plugin, type TAbstractFile, TFile, TFolder } from 'obsidian';
 
 import { TABLE_VIEW_ID, TableView } from '@/views/table';
 
-import type { TableData } from '@/types';
+import { FDB_FILE_EXTENSION } from '@/lib/constants';
+import { EventManager } from '@/lib/event-manager';
+
+import './global.css';
 
 export default class FolderbasePlugin extends Plugin {
 	onload() {
@@ -11,66 +14,79 @@ export default class FolderbasePlugin extends Plugin {
 			this.init();
 		});
 	}
+
 	onunload() {
-		// TODO
+		this.app.workspace.detachLeavesOfType(TABLE_VIEW_ID);
 	}
 
 	private init() {
-		const result = this.buildTableData('TOUCHDESIGNER/Tutoriels');
-		if (result instanceof Error) {
-			console.error(result);
+		this.registerView(TABLE_VIEW_ID, (leaf) => new TableView(leaf));
+		this.registerExtensions([FDB_FILE_EXTENSION], TABLE_VIEW_ID);
+		this.registerEvents();
 
-			return;
-		}
-
-		const { keys, data } = result;
-		this.registerView(TABLE_VIEW_ID, (leaf) => new TableView(leaf, keys, data));
-
-		this.addRibbonIcon('dice', 'Activate view', () => {
-			return this.activateView();
-		});
+		// TODO: Update already-opened Folderbase files
 	}
 
-	private async activateView() {
-		const { workspace } = this.app;
+	private registerEvents() {
+		this.registerEvent(
+			this.app.workspace.on('file-menu', (menu, file) => {
+				if (!(file instanceof TFolder)) {
+					return;
+				}
 
-		const leaf = workspace.getLeaf('tab');
-		await leaf?.setViewState({ type: TABLE_VIEW_ID, active: true });
-	}
-
-	private buildTableData(folderPath: string): { keys: Set<string>; data: TableData } | Error {
-		const folder = this.app.vault.getFolderByPath(normalizePath(folderPath));
-		if (folder === null) {
-			return new Error(`Could not open folder "${folderPath}"`);
-		}
-
-		const keys = new Set<string>();
-		const data: TableData = [];
-
-		for (const child of folder.children) {
-			if (!(child instanceof TFile)) {
-				continue;
-			}
-
-			try {
-				this.app.fileManager.processFrontMatter(child, (frontmatter) => {
-					if (!frontmatter) {
-						return;
-					}
-
-					data.push({ ...frontmatter });
-					for (const key of Object.keys(frontmatter)) {
-						keys.add(key);
-					}
+				menu.addItem((item) => {
+					item.setTitle('New database view from folder')
+						.setIcon('table')
+						.onClick(() => this.createFolderbaseFile(file.path));
 				});
-			} catch (error) {
-				return error instanceof Error ? error : new Error(String(error));
-			}
-		}
+			}),
+		);
 
-		return {
-			keys,
-			data,
-		};
+		this.registerEvent(
+			this.app.vault.on('create', (file: TAbstractFile) => {
+				if (file instanceof TFile) {
+					EventManager.getInstance().emit('file-created', { file });
+				}
+			}),
+		);
+
+		this.registerEvent(
+			this.app.vault.on('rename', (file: TAbstractFile) => {
+				EventManager.getInstance().emit(file instanceof TFile ? 'file-renamed' : 'folder-renamed');
+			}),
+		);
+
+		this.registerEvent(
+			this.app.vault.on('delete', (file: TAbstractFile) => {
+				EventManager.getInstance().emit(file instanceof TFile ? 'file-removed' : 'folder-removed');
+			}),
+		);
+
+		this.registerEvent(
+			this.app.metadataCache.on('changed', async (file) => {
+				if (file instanceof TFile) {
+					// await new Promise((resolve) => setTimeout(resolve, 100));
+					EventManager.getInstance().emit('file-frontmatter-updated', { file });
+				}
+			}),
+		);
+	}
+
+	private async createFolderbaseFile(folderPath: string): Promise<void> {
+		try {
+			const file = await this.app.vault.create(
+				`${folderPath}.${FDB_FILE_EXTENSION}`,
+				JSON.stringify({
+					//
+					folder: normalizePath(folderPath),
+				}),
+			);
+
+			// Open the file in a new tab
+			await this.app.workspace.getLeaf(true).openFile(file);
+		} catch (error) {
+			// TODO: Display error in alert
+			console.log(error);
+		}
 	}
 }
