@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { appendOrReplaceFirstChild } from '@/helpers/dom';
 
 // import classes from './Icon.module.css';
+import './Icon.css';
 
 export function Icon({
 	id,

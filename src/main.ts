@@ -1,11 +1,13 @@
 import { normalizePath, Plugin, type TAbstractFile, TFile, TFolder } from 'obsidian';
 
-import { TABLE_VIEW_ID, TableView } from '@/views/table';
+import { FOLDERBASE_VIEW_ID, FolderBaseView } from '@/views/folderbase';
 
-import { FDB_FILE_EXTENSION } from '@/lib/constants';
+import { FDB_FILE_EXTENSION, KANBAN_VIEW_ICON, TABLE_VIEW_ICON } from '@/lib/constants';
 import { EventManager } from '@/lib/event-manager';
 
 import './global.css';
+
+import type { FolderbaseFileSettings } from './lib/settings';
 
 export default class FolderbasePlugin extends Plugin {
 	onload() {
@@ -16,12 +18,12 @@ export default class FolderbasePlugin extends Plugin {
 	}
 
 	onunload() {
-		this.app.workspace.detachLeavesOfType(TABLE_VIEW_ID);
+		this.app.workspace.detachLeavesOfType(FOLDERBASE_VIEW_ID);
 	}
 
 	private init() {
-		this.registerView(TABLE_VIEW_ID, (leaf) => new TableView(leaf));
-		this.registerExtensions([FDB_FILE_EXTENSION], TABLE_VIEW_ID);
+		this.registerView(FOLDERBASE_VIEW_ID, (leaf) => new FolderBaseView(leaf));
+		this.registerExtensions([FDB_FILE_EXTENSION], FOLDERBASE_VIEW_ID);
 		this.registerEvents();
 
 		// TODO: Update already-opened Folderbase files
@@ -34,11 +36,18 @@ export default class FolderbasePlugin extends Plugin {
 					return;
 				}
 
+				menu.addSeparator();
 				menu.addItem((item) => {
-					item.setTitle('New database view from folder')
-						.setIcon('table')
-						.onClick(() => this.createFolderbaseFile(file.path));
+					item.setTitle('New table view from folder')
+						.setIcon(TABLE_VIEW_ICON)
+						.onClick(() => this.createFolderbaseTableFile(file.path));
 				});
+				menu.addItem((item) => {
+					item.setTitle('New kanban view from folder')
+						.setIcon(KANBAN_VIEW_ICON)
+						.onClick(() => this.createFolderbaseKanbanFile(file.path));
+				});
+				menu.addSeparator();
 			}),
 		);
 
@@ -65,21 +74,33 @@ export default class FolderbasePlugin extends Plugin {
 		this.registerEvent(
 			this.app.metadataCache.on('changed', async (file) => {
 				if (file instanceof TFile) {
-					// await new Promise((resolve) => setTimeout(resolve, 100));
 					EventManager.getInstance().emit('file-frontmatter-updated', { file });
 				}
 			}),
 		);
 	}
 
-	private async createFolderbaseFile(folderPath: string): Promise<void> {
+	private async createFolderbaseTableFile(folderPath: string): Promise<void> {
+		return this.createFolderbaseFile(folderPath, {
+			//
+			mode: 'table',
+			folder: normalizePath(folderPath),
+		});
+	}
+
+	private async createFolderbaseKanbanFile(folderPath: string): Promise<void> {
+		return this.createFolderbaseFile(folderPath, {
+			//
+			mode: 'kanban',
+			folder: normalizePath(folderPath),
+		});
+	}
+
+	private async createFolderbaseFile(folderPath: string, initialSettings: FolderbaseFileSettings): Promise<void> {
 		try {
 			const file = await this.app.vault.create(
 				`${folderPath}.${FDB_FILE_EXTENSION}`,
-				JSON.stringify({
-					//
-					folder: normalizePath(folderPath),
-				}),
+				JSON.stringify(initialSettings),
 			);
 
 			// Open the file in a new tab

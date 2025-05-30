@@ -2,6 +2,8 @@ import { Link } from '@/components/ui/Link';
 
 import type { FormattedFrontMatterValue } from '@/types/table';
 
+import './Cell.css';
+
 export function Cell({
 	value,
 	onFileLinkClick,

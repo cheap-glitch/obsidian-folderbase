@@ -1,4 +1,11 @@
+import { FDB_FILE_EXTENSION } from '@/lib/constants';
+
 import type { TFile } from 'obsidian';
+
+export function getDefaultFolderPath(filePath: string): string {
+	// Remove the file extension
+	return filePath.slice(0, filePath.length - (FDB_FILE_EXTENSION.length + 1));
+}
 
 export function isInFolder(
 	file: TFile,

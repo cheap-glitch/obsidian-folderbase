@@ -1,0 +1,20 @@
+select.fdb-cell-select.fdb-cell-select {
+	&.fdb-null-value {
+		color: var(--text-muted);
+		font-style: italic;
+	}
+
+	&:hover {
+		background-color: var(--background-modifier-hover);
+	}
+
+	& > option {
+		color: var(--text-normal);
+		font-style: normal;
+		background-color: var(--background-secondary-alt);
+	}
+
+	& > option:hover {
+		background-color: var(--background-modifier-active-hover);
+	}
+}

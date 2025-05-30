@@ -2,7 +2,9 @@ import { flexRender, type Table } from '@tanstack/react-table';
 
 import type { ColumnData } from '@/types/table';
 
-export function TableHead({ table }: { table: Table<ColumnData> }) {
+import './TableHeader.css';
+
+export function TableHeader({ table }: { table: Table<ColumnData> }) {
 	return (
 		<thead>
 			{table.getHeaderGroups().map((headerGroup) => (
@@ -27,7 +29,7 @@ export function TableHead({ table }: { table: Table<ColumnData> }) {
 							>
 								<button
 									type="button"
-									className="fdb-header-button"
+									className="fdb-cell-ui fdb-header-button"
 									title={
 										header.column.getCanSort()
 											? header.column.getNextSortingOrder() === 'asc'

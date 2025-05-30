@@ -7,13 +7,13 @@ import {
 } from '@tanstack/react-table';
 import { useEffect, useRef, useState } from 'react';
 
-import { TableHead } from '@/components/table/TableHead';
+import { TableHeader } from '@/components/table/TableHeader';
 
 import { isInFolder } from '@/helpers/files';
 import { isSameSet } from '@/helpers/sets';
 import { useApp } from '@/hooks/use-app';
 import { buildColumns } from '@/lib/columns';
-import { processFileFrontMatter } from '@/lib/data';
+import { getFormattedFileFrontMatter } from '@/lib/data/frontmatter';
 import { EventManager } from '@/lib/event-manager';
 import { __CUSTOM__STATUS_EMOJIS, __custom__sortTags, sortEnum, sortFileLink } from '@/lib/sorting';
 
@@ -22,6 +22,7 @@ import type { TFile } from 'obsidian';
 import type { ColumnData, FileFrontMatter, FormattedFrontMatterValue, FrontMatterValue } from '@/types/table';
 
 // import classes from './Table.module.css';
+import './Table.css';
 
 export function Table({
 	keys: defaultKeys,
@@ -174,18 +175,24 @@ export function Table({
 
 		try {
 			const updatedKeys = new Set(keys);
-			const updatedFileData = await processFileFrontMatter(app, updatedKeys, folderPath, file);
+			const updatedColumnData: ColumnData = {
+				filelink: {
+					href: file.path,
+					anchor: file.basename,
+				},
+				frontmatter: await getFormattedFileFrontMatter(app, file, folderPath, updatedKeys),
+			};
 
 			setData((oldData) => {
 				if (oldData.some((fileData) => fileData.filelink.href === file.path)) {
 					// Update the row
 					return oldData.map((fileData) =>
-						fileData.filelink.href === file.path ? updatedFileData : fileData,
+						fileData.filelink.href === file.path ? updatedColumnData : fileData,
 					);
 				}
 
 				// Insert a new row
-				return [...oldData, updatedFileData];
+				return [...oldData, updatedColumnData];
 			});
 
 			if (!isSameSet(keys, updatedKeys)) {
@@ -229,7 +236,7 @@ export function Table({
 			// className={classes.table}
 			className="fdb-table"
 		>
-			<TableHead table={table} />
+			<TableHeader table={table} />
 
 			<tbody>
 				{table.getRowModel().rows.map((row) => (

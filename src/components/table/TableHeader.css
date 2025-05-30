@@ -1,0 +1,9 @@
+button.fdb-header-button.fdb-header-button {
+	width: 100%;
+
+	padding: var(--header-cell-padding);
+
+	&:hover {
+		background-color: var(--background-modifier-hover);
+	}
+}

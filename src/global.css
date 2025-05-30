@@ -13,68 +13,7 @@
 	color: var(--text-error);
 }
 
-.fdb-cell-list {
-	margin: 0;
-	padding: 0;
-
-	display: flex;
-	flex-wrap: wrap;
-	gap: 4px;
-
-	list-style: none;
-
-	& li {
-		margin: 0;
-		margin-block: 0;
-		padding-inline: 0;
-
-		padding: 2px 4px;
-
-		background-color: var(--background-modifier-border);
-		border-radius: calc((1em / 2) + 4px);
-	}
-}
-
-/* TODO: Remove when CSS modules are fixed */
-
-.fdb-icon {
-	display: flex;
-	align-items: end;
-}
-
-.fdb-table {
-	--header-cell-padding: 4px 8px;
-
-	border-collapse: collapse;
-
-	& :is(th, tr:nth-child(even)) {
-		background-color: var(--background-secondary);
-	}
-
-	& :is(th, td) {
-		border: 1px solid var(--background-modifier-border);
-	}
-
-	& th {
-		padding: 0;
-		user-select: none;
-
-		&:not(.fdb-sortable-header) {
-			padding: var(--header-cell-padding);
-		}
-	}
-
-	& td {
-		padding: var(--header-cell-padding);
-
-		&:has(> :is(input, select)) {
-			padding: 0;
-		}
-	}
-}
-
-select.fdb-cell-select.fdb-cell-select,
-button.fdb-header-button.fdb-header-button {
+.fdb-cell-ui.fdb-cell-ui {
 	display: block;
 	margin: 0;
 
@@ -90,35 +29,4 @@ button.fdb-header-button.fdb-header-button {
 
 	cursor: pointer;
 	user-select: none;
-}
-
-button.fdb-header-button.fdb-header-button {
-	width: 100%;
-
-	padding: var(--header-cell-padding);
-
-	&:hover {
-		background-color: var(--background-modifier-hover);
-	}
-}
-
-select.fdb-cell-select.fdb-cell-select {
-	&.fdb-null-value {
-		color: var(--text-muted);
-		font-style: italic;
-	}
-
-	&:hover {
-		background-color: var(--background-modifier-hover);
-	}
-
-	& > option {
-		color: var(--text-normal);
-		font-style: normal;
-		background-color: var(--background-secondary-alt);
-	}
-
-	& > option:hover {
-		background-color: var(--background-modifier-active-hover);
-	}
 }

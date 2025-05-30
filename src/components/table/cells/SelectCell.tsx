@@ -1,5 +1,7 @@
 import { clsx } from 'clsx';
 
+import './SelectCell.css';
+
 export function SelectCell({
 	value,
 	options,
@@ -13,7 +15,7 @@ export function SelectCell({
 }) {
 	return (
 		<select
-			className={clsx('fdb-cell-select', (value === 'null' || value === '') && 'fdb-null-value')}
+			className={clsx('fdb-cell-ui', 'fdb-cell-select', (value === 'null' || value === '') && 'fdb-null-value')}
 			value={value}
 			onBlur={onBlur}
 			onChange={(event) => {

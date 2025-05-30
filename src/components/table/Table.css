@@ -1,0 +1,30 @@
+.fdb-table {
+	--header-cell-padding: 4px 8px;
+
+	border-collapse: collapse;
+
+	& :is(th, tr:nth-child(even)) {
+		background-color: var(--background-secondary);
+	}
+
+	& :is(th, td) {
+		border: 1px solid var(--background-modifier-border);
+	}
+
+	& th {
+		padding: 0;
+		user-select: none;
+
+		&:not(.fdb-sortable-header) {
+			padding: var(--header-cell-padding);
+		}
+	}
+
+	& td {
+		padding: var(--header-cell-padding);
+
+		&:has(> :is(input, select)) {
+			padding: 0;
+		}
+	}
+}
