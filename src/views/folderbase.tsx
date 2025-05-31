@@ -15,8 +15,8 @@ import { collateFilesData } from '@/lib/files-data';
 import type { FolderbaseViewMode } from '../lib/settings';
 
 export class FolderbaseView extends TextFileView {
-	mode: FolderbaseViewMode;
 	root?: Root;
+	mode: FolderbaseViewMode;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -24,7 +24,6 @@ export class FolderbaseView extends TextFileView {
 		// https://docs.obsidian.md/Reference/TypeScript+API/View/navigation
 		this.navigation = false;
 		this.allowNoFile = false;
-
 		this.mode = 'table';
 	}
 
@@ -59,7 +58,12 @@ export class FolderbaseView extends TextFileView {
 		// TODO ?
 	}
 
-	setViewData(textContents: string, clear: boolean): void {
+	setMode(mode: FolderbaseViewMode) {
+		this.mode = mode;
+		this.icon = this.mode === 'table' ? TABLE_VIEW_ICON : KANBAN_VIEW_ICON;
+	}
+
+	setViewData(textContents: string, clear: boolean) {
 		if (clear) {
 			this.clear();
 		}
@@ -109,12 +113,24 @@ export class FolderbaseView extends TextFileView {
 
 		this.root?.render(
 			<StrictMode>
-				<SettingsStoreProvider>
+				<SettingsStoreProvider
+					settings={{
+						mode: this.mode,
+						kanban: {
+							columnsKey: 'Mois', // __CUSTOM__
+							openCardFilesInNew: 'rsplit',
+							showCardTitles: false,
+							showCardFrontmatter: true,
+						},
+					}}
+				>
 					<AppContext.Provider value={this.app}>
 						<FolderbaseMain
 							data={data}
 							keys={allFrontmatterKeys}
 							folderPath={folderPath}
+							// biome-ignore lint/style/noNonNullAssertion: `this.allowNoFile` is set to `false`
+							viewFilePath={this.file!.path}
 						/>
 					</AppContext.Provider>
 				</SettingsStoreProvider>

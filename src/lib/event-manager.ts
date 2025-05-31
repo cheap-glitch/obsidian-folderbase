@@ -8,7 +8,8 @@ type FolderBaseEvent =
 	| 'folder-renamed'
 	| 'file-removed'
 	| 'folder-removed'
-	| 'file-frontmatter-updated';
+	| 'file-frontmatter-updated'
+	| 'set-view-mode';
 
 export class EventManager {
 	private static instance: EventManager;

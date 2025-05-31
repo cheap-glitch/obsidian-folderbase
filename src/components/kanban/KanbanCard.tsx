@@ -18,7 +18,7 @@ import { openFileInNewTab } from '@/helpers/files';
 
 export function KanbanCard({ filePath, title, frontmatter, markdownContent }: KanbanCardData) {
 	const app = useApp();
-	const { showCardTitles, showCardFrontmatter } = useSettingsStore(({ kanban }) => kanban);
+	const { showCardTitles, showCardFrontmatter } = useSettingsStore((settings) => settings.kanban);
 
 	const contentWrapper = useRef<HTMLDivElement | null>(null);
 	const rendererComponent = useRef<Component | undefined>(undefined);
@@ -128,7 +128,17 @@ export function KanbanCard({ filePath, title, frontmatter, markdownContent }: Ka
 	return (
 		<div className="fdb-kanban-card">
 			<header className="fdb-flex-row fdb-kanban-card-header">
-				{showCardTitles && <h5 className="fdb-kanban-card-title">{title}</h5>}
+				<div>
+					{showCardTitles && <h5 className="fdb-kanban-card-title">{title}</h5>}
+					{showCardFrontmatter && (
+						<>
+							{/* __CUSTOM__ */}
+							{frontmatter.Créneau && (
+								<h5 className="fdb-kanban-card-title">{String(frontmatter.Créneau)}</h5>
+							)}
+						</>
+					)}
+				</div>
 				<div className="fdb-flex-spacer" />
 				<IconButton
 					className="fdb-kanban-card-edit-button"
@@ -138,14 +148,6 @@ export function KanbanCard({ filePath, title, frontmatter, markdownContent }: Ka
 					}}
 				/>
 			</header>
-			{showCardFrontmatter && (
-				<div>
-					{/* __CUSTOM__ */}
-					{frontmatter.Créneau && (
-						<p className="fdb-kanban-card-frontmatter">{String(frontmatter.Créneau)}</p>
-					)}
-				</div>
-			)}
 			<div
 				ref={contentWrapper}
 				className="fdb-kanban-card-contents"

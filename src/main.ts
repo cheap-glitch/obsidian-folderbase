@@ -1,4 +1,4 @@
-import { normalizePath, Plugin, type TAbstractFile, TFile, TFolder } from 'obsidian';
+import { MarkdownView, type Menu, normalizePath, Plugin, type TAbstractFile, TFile, type View } from 'obsidian';
 
 import { FolderbaseView } from '@/views/folderbase';
 
@@ -29,10 +29,42 @@ export default class FolderbasePlugin extends Plugin {
 		// TODO: Update already-opened Folderbase files
 	}
 
+	private addSwitchViewModeMenuItem(menu: Menu, view: View) {
+		if (!(view instanceof FolderbaseView)) {
+			return;
+		}
+
+		menu.addItem((item) => {
+			const otherMode = view.mode === 'table' ? 'kanban' : 'table';
+
+			item.setTitle(`Switch to ${otherMode} view`)
+				.setIcon(view.mode === 'table' ? KANBAN_VIEW_ICON : TABLE_VIEW_ICON)
+				.onClick(() => {
+					view.setMode(otherMode);
+					EventManager.getInstance().emit('set-view-mode', {
+						mode: otherMode,
+						filePath: view.file?.path,
+					});
+				});
+		});
+	}
+
 	private registerEvents() {
 		this.registerEvent(
-			this.app.workspace.on('file-menu', (menu, file) => {
-				if (!(file instanceof TFolder)) {
+			this.app.workspace.on('editor-menu', (menu, _editor, view) => {
+				if (view instanceof MarkdownView) {
+					this.addSwitchViewModeMenuItem(menu, view);
+				}
+			}),
+		);
+
+		this.registerEvent(
+			this.app.workspace.on('file-menu', (menu, node, _source, leaf) => {
+				if (node instanceof TFile) {
+					if (leaf && node.extension === FDB_FILE_EXTENSION) {
+						this.addSwitchViewModeMenuItem(menu, leaf.view);
+					}
+
 					return;
 				}
 
@@ -40,12 +72,12 @@ export default class FolderbasePlugin extends Plugin {
 				menu.addItem((item) => {
 					item.setTitle('New table view from folder')
 						.setIcon(TABLE_VIEW_ICON)
-						.onClick(() => this.createFolderbaseTableFile(file.path));
+						.onClick(() => this.createFolderbaseTableFile(node.path));
 				});
 				menu.addItem((item) => {
 					item.setTitle('New kanban view from folder')
 						.setIcon(KANBAN_VIEW_ICON)
-						.onClick(() => this.createFolderbaseKanbanFile(file.path));
+						.onClick(() => this.createFolderbaseKanbanFile(node.path));
 				});
 				menu.addSeparator();
 			}),
@@ -107,7 +139,7 @@ export default class FolderbasePlugin extends Plugin {
 			await this.app.workspace.getLeaf(true).openFile(file);
 		} catch (error) {
 			// TODO: Display error in alert
-			console.log(error);
+			console.error(error);
 		}
 	}
 }

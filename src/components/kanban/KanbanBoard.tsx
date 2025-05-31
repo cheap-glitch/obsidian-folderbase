@@ -28,7 +28,7 @@ export function KanbanBoard({
 	const wrapper = useRef<HTMLDivElement | null>(null);
 
 	const app = useApp();
-	const kanban = useSettingsStore(({ kanban }) => kanban);
+	const kanban = useSettingsStore((settings) => settings.kanban);
 
 	const [columnsKey, _setColumnsKey] = useState<string>(() => {
 		// biome-ignore lint/style/noNonNullAssertion: Component isn't instanced if there are no frontmatter keys

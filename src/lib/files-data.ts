@@ -26,6 +26,11 @@ export async function collateFilesData(
 			continue;
 		}
 
+		// __CUSTOM__
+		if (file.basename === '__TEMPLATE__') {
+			continue;
+		}
+
 		promises.push(
 			(async (): Promise<FileData> => ({
 				path: file.path,

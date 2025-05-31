@@ -2,17 +2,6 @@ import { createStore } from 'zustand/vanilla';
 
 import type { ContainerType, FolderbaseViewMode, FolderbaseViewSettings } from '../lib/settings';
 
-const defaultInitialState: FolderbaseViewSettings = {
-	mode: 'table',
-	kanban: {
-		// columnsKey: undefined,
-		columnsKey: 'Mois', // __CUSTOM__
-		openCardFilesInNew: 'rsplit',
-		showCardTitles: true,
-		showCardFrontmatter: false,
-	},
-};
-
 interface SettingsActions {
 	setViewMode: (mode: FolderbaseViewMode) => void;
 	setColumnsKey: (key: string) => void;
@@ -23,7 +12,7 @@ interface SettingsActions {
 
 export type SettingsStore = FolderbaseViewSettings & SettingsActions;
 
-export function createSettingsStore(initialState: FolderbaseViewSettings = defaultInitialState) {
+export function createSettingsStore(initialState: FolderbaseViewSettings) {
 	return createStore<SettingsStore>()((set) => ({
 		...initialState,
 

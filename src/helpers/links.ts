@@ -6,8 +6,6 @@ const WIKI_LINK_REGEX = /^\[\[[^\]]+\]\]$/u;
 
 export function parseWikiLink(app: App, link: string, folderPath: string): FileLink | string {
 	const linkTarget = app.metadataCache.getFirstLinkpathDest(link, normalizePath(folderPath));
-	console.log(link, linkTarget);
-
 	if (!linkTarget) {
 		return link;
 	}

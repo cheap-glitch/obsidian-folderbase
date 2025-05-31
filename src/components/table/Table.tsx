@@ -132,10 +132,10 @@ export function Table({
 	});
 
 	async function updateRowFileLink({ file }: { file?: TFile } = {}) {
-		console.log('Detected file renamed', file);
+		// console.log('Detected file renamed', file);
 
 		if (!file || !isInFolder(file, folderPath)) {
-			console.log('File was not in folder, ignoring');
+			// console.log('File was not in folder, ignoring');
 
 			return;
 		}
@@ -158,16 +158,16 @@ export function Table({
 	}
 
 	async function updateOrInsertRowData({ file }: { file?: TFile } = {}) {
-		console.log('Detected file updated or created', file);
+		// console.log('Detected file updated or created', file);
 
 		if (!file || !isInFolder(file, folderPath)) {
-			console.log('File was not in folder, ignoring');
+			// console.log('File was not in folder, ignoring');
 
 			return;
 		}
 
 		if (ignoredFilePathEvents.current.has(file.path)) {
-			console.log('File was edited directly in the table, ignoring');
+			// console.log('File was edited directly in the table, ignoring');
 
 			ignoredFilePathEvents.current.delete(file.path);
 
