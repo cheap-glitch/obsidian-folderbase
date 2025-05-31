@@ -15,7 +15,11 @@ export function SelectCell({
 }) {
 	return (
 		<select
-			className={clsx('fdb-cell-ui', 'fdb-cell-select', (value === 'null' || value === '') && 'fdb-null-value')}
+			className={clsx(
+				'fdb-input-unstyled',
+				'fdb-cell-select',
+				(value === 'null' || value === '') && 'fdb-null-value',
+			)}
 			value={value}
 			onBlur={onBlur}
 			onChange={(event) => {

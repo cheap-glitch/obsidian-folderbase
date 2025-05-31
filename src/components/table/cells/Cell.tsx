@@ -1,6 +1,6 @@
 import { Link } from '@/components/ui/Link';
 
-import type { FormattedFrontMatterValue } from '@/types/table';
+import type { FormattedFrontMatterValue } from '@/types/frontmatter';
 
 import './Cell.css';
 

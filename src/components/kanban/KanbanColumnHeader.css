@@ -1,0 +1,8 @@
+.fdb-kanban-column-title {
+	flex: 0 0 auto;
+}
+
+.fdb-kanban-column-items-count {
+	margin-left: var(--size-4-1);
+	color: var(--text-faint);
+}

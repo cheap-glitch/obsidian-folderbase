@@ -9,28 +9,30 @@ import { useEffect, useRef, useState } from 'react';
 
 import { TableHeader } from '@/components/table/TableHeader';
 
-import { isInFolder } from '@/helpers/files';
+import { isInFolder, openFileInNewTab } from '@/helpers/files';
 import { isSameSet } from '@/helpers/sets';
 import { useApp } from '@/hooks/use-app';
 import { buildColumns } from '@/lib/columns';
-import { getFormattedFileFrontMatter } from '@/lib/data/frontmatter';
 import { EventManager } from '@/lib/event-manager';
+import { getFormattedFileFrontMatter, updateFileFrontMatter as updateFileFrontMatter_ } from '@/lib/frontmatter';
 import { __CUSTOM__STATUS_EMOJIS, __custom__sortTags, sortEnum, sortFileLink } from '@/lib/sorting';
 
 import type { Row, SortingState } from '@tanstack/react-table';
 import type { TFile } from 'obsidian';
-import type { ColumnData, FileFrontMatter, FormattedFrontMatterValue, FrontMatterValue } from '@/types/table';
+import type { FileData } from '@/lib/files-data';
+import type { FormattedFrontMatterValue, FrontMatterValue } from '@/types/frontmatter';
+import type { ColumnData } from '@/types/table';
 
-// import classes from './Table.module.css';
+// TODO: import classes from './Table.module.css';
 import './Table.css';
 
 export function Table({
-	keys: defaultKeys,
-	data: defaultData,
+	data: initialData,
+	keys: initialKeys,
 	folderPath,
 }: {
 	keys: Set<string>;
-	data: ColumnData[];
+	data: FileData[];
 	folderPath: string;
 }) {
 	const app = useApp();
@@ -40,24 +42,11 @@ export function Table({
 		ignoredFilePathEvents.current.add(filePath);
 	}
 
-	function openFileInNewTab(path: string) {
-		const leaf = app.workspace.getLeaf('tab');
-		const file = app.vault.getFileByPath(path);
+	async function updateFileFrontMatter(filePath: string, key: string, value: FrontMatterValue): Promise<void> {
+		skipNextFileUpdateEvent(filePath);
 
-		if (file) {
-			leaf?.openFile(file, { active: true });
-		}
-	}
-
-	async function updateFileFrontmatter(filePath: string, key: string, value: FrontMatterValue): Promise<void> {
 		try {
-			const file = app.vault.getFileByPath(filePath);
-			if (!file) {
-				throw new Error(`Could not find file at "${filePath}"`);
-			}
-
-			skipNextFileUpdateEvent(filePath);
-			await app.fileManager.processFrontMatter(file, (frontmatter: FileFrontMatter) => {
+			await updateFileFrontMatter_(app, filePath, (frontmatter) => {
 				frontmatter[key] = value;
 			});
 		} catch (error) {
@@ -65,15 +54,26 @@ export function Table({
 		}
 	}
 
-	const [keys, setKeys] = useState(() => new Set(defaultKeys));
-	const [data, setData] = useState(() => [...defaultData]);
+	const [keys, setKeys] = useState(() => new Set(initialKeys));
+	const [data, setData] = useState(() => {
+		return initialData.map(({ path, basename, frontmatter }) => ({
+			file: {
+				path: path,
+				basename: basename,
+			},
+			frontmatter,
+		}));
+	});
 	const [columns, setColumns] = useState(() =>
 		buildColumns({
-			keys: defaultKeys,
-			updateFileFrontmatter,
-			onFileLinkClick: openFileInNewTab,
+			keys: initialKeys,
+			updateFileFrontMatter,
+			onFileLinkClick: (filePath) => {
+				openFileInNewTab(app, filePath);
+			},
 		}),
 	);
+
 	const [sorting, setSorting] = useState<SortingState>(() => {
 		const state: SortingState = [];
 
@@ -142,16 +142,17 @@ export function Table({
 
 		setData((oldData) => {
 			return oldData.map((fileData) => {
-				if (fileData.filelink.href === file.path) {
-					return {
-						filelink: {
-							href: file.path,
-							anchor: file.basename,
-						},
-						frontmatter: fileData.frontmatter,
-					};
+				if (fileData.file.path !== file.path) {
+					return fileData;
 				}
-				return fileData;
+
+				return {
+					file: {
+						path: file.path,
+						basename: file.basename,
+					},
+					frontmatter: fileData.frontmatter,
+				};
 			});
 		});
 	}
@@ -176,33 +177,33 @@ export function Table({
 		try {
 			const updatedKeys = new Set(keys);
 			const updatedColumnData: ColumnData = {
-				filelink: {
-					href: file.path,
-					anchor: file.basename,
+				file: {
+					path: file.path,
+					basename: file.basename,
 				},
 				frontmatter: await getFormattedFileFrontMatter(app, file, folderPath, updatedKeys),
 			};
 
 			setData((oldData) => {
-				if (oldData.some((fileData) => fileData.filelink.href === file.path)) {
+				if (oldData.some((fileData) => fileData.file.path === file.path)) {
 					// Update the row
-					return oldData.map((fileData) =>
-						fileData.filelink.href === file.path ? updatedColumnData : fileData,
-					);
+					return oldData.map((fileData) => (fileData.file.path === file.path ? updatedColumnData : fileData));
 				}
 
 				// Insert a new row
 				return [...oldData, updatedColumnData];
 			});
 
+			// Update column headers if needed
 			if (!isSameSet(keys, updatedKeys)) {
-				// Update column headers if needed
 				setKeys(updatedKeys);
 				setColumns(
 					buildColumns({
 						keys: updatedKeys,
-						updateFileFrontmatter,
-						onFileLinkClick: openFileInNewTab,
+						updateFileFrontMatter,
+						onFileLinkClick: (filePath) => {
+							openFileInNewTab(app, filePath);
+						},
 					}),
 				);
 			}
@@ -213,7 +214,7 @@ export function Table({
 
 	async function removeRow({ file }: { file?: TFile } = {}) {
 		if (file) {
-			setData((oldData) => oldData.filter((fileData) => fileData.filelink.href !== file.path));
+			setData((oldData) => oldData.filter((fileData) => fileData.file.path !== file.path));
 		}
 	}
 
@@ -232,12 +233,8 @@ export function Table({
 	}, []);
 
 	return (
-		<table
-			// className={classes.table}
-			className="fdb-table"
-		>
+		<table className="fdb-table">
 			<TableHeader table={table} />
-
 			<tbody>
 				{table.getRowModel().rows.map((row) => (
 					<tr key={row.id}>
@@ -247,17 +244,6 @@ export function Table({
 					</tr>
 				))}
 			</tbody>
-
-			{/* TODO: Fix this
-				<button
-					type="button"
-					onClick={() => {
-						rerender();
-					}}
-				>
-					Rerender
-				</button>
-			*/}
 		</table>
 	);
 }

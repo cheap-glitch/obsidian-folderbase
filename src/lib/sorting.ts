@@ -1,5 +1,6 @@
 import type { Row } from '@tanstack/react-table';
-import type { ColumnData, FileLink } from '@/types/table';
+import type { FileLink } from '@/types/frontmatter';
+import type { ColumnData } from '@/types/table';
 
 const TEXT_COLLATOR = new Intl.Collator();
 

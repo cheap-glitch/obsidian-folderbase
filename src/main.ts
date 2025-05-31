@@ -1,13 +1,13 @@
 import { normalizePath, Plugin, type TAbstractFile, TFile, TFolder } from 'obsidian';
 
-import { FOLDERBASE_VIEW_ID, FolderBaseView } from '@/views/folderbase';
+import { FolderbaseView } from '@/views/folderbase';
 
-import { FDB_FILE_EXTENSION, KANBAN_VIEW_ICON, TABLE_VIEW_ICON } from '@/lib/constants';
+import { FDB_FILE_EXTENSION, FDB_VIEW_ID, KANBAN_VIEW_ICON, TABLE_VIEW_ICON } from '@/lib/constants';
 import { EventManager } from '@/lib/event-manager';
 
-import './global.css';
-
 import type { FolderbaseFileSettings } from './lib/settings';
+
+import './utilities.css';
 
 export default class FolderbasePlugin extends Plugin {
 	onload() {
@@ -18,12 +18,12 @@ export default class FolderbasePlugin extends Plugin {
 	}
 
 	onunload() {
-		this.app.workspace.detachLeavesOfType(FOLDERBASE_VIEW_ID);
+		this.app.workspace.detachLeavesOfType(FDB_VIEW_ID);
 	}
 
 	private init() {
-		this.registerView(FOLDERBASE_VIEW_ID, (leaf) => new FolderBaseView(leaf));
-		this.registerExtensions([FDB_FILE_EXTENSION], FOLDERBASE_VIEW_ID);
+		this.registerView(FDB_VIEW_ID, (leaf) => new FolderbaseView(leaf));
+		this.registerExtensions([FDB_FILE_EXTENSION], FDB_VIEW_ID);
 		this.registerEvents();
 
 		// TODO: Update already-opened Folderbase files

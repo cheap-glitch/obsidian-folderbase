@@ -5,31 +5,32 @@ import { Link } from '@/components/ui/Link';
 import { capitalize } from '@/helpers/text';
 
 import type { ColumnDef, Getter } from '@tanstack/react-table';
-import type { CellInputType, ColumnData, FormattedFrontMatterValue, FrontMatterValue } from '@/types/table';
+import type { FormattedFrontMatterValue, FrontMatterValue } from '@/types/frontmatter';
+import type { CellInputType, ColumnData } from '@/types/table';
 
 export function buildColumns({
 	keys,
 	onFileLinkClick,
-	updateFileFrontmatter,
+	updateFileFrontMatter,
 }: {
 	keys: Set<string>;
 	onFileLinkClick: (filePath: string) => void;
-	updateFileFrontmatter: (filePath: string, key: string, value: FrontMatterValue) => Promise<void>;
+	updateFileFrontMatter: (filePath: string, key: string, value: FrontMatterValue) => Promise<void>;
 }): ColumnDef<ColumnData>[] {
 	const columns: ColumnDef<ColumnData>[] = [
 		{
 			id: '__FDB_FILELINK__',
 			header: 'File',
-			accessorKey: 'filelink',
+			accessorKey: 'file',
 			enableSorting: true,
 			enableMultiSort: true,
 			sortingFn: 'sortFileLink',
-			cell: ({ getValue }: { getValue: Getter<ColumnData['filelink']> }) => (
+			cell: ({ getValue }: { getValue: Getter<ColumnData['file']> }) => (
 				<Link
-					href={getValue().href}
+					href={getValue().path}
 					onClick={onFileLinkClick}
 				>
-					{getValue().anchor}
+					{getValue().basename}
 				</Link>
 			),
 		},
@@ -71,7 +72,7 @@ export function buildColumns({
 		columns.push({
 			id: key,
 			header: capitalize(key),
-			accessorFn: (row) => row.frontmatter[key] ?? null,
+			accessorFn: (row) => row.frontmatter[key] ?? null, // Avoid undefined values as they mess up the sorting
 
 			enableSorting: false,
 			...__custom__extraColumnOptions,
@@ -81,7 +82,7 @@ export function buildColumns({
 						<EditableCell
 							{...params}
 							inputType={inputType}
-							updateFileFrontmatter={updateFileFrontmatter}
+							updateFileFrontmatter={updateFileFrontMatter}
 						/>
 					)
 				: ({ getValue }) => (

@@ -1,24 +1,21 @@
 import { normalizePath, TextFileView, type WorkspaceLeaf } from 'obsidian';
-import { type ReactNode, StrictMode } from 'react';
+import { StrictMode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
-import { KanbanBoard } from '@/components/kanban/KanbanBoard';
-import { Table } from '@/components/table/Table';
+import { FolderbaseMain } from '@/components/FolderbaseMain';
 import { Icon } from '@/components/ui/Icon';
 
 import { AppContext } from '@/contexts/app-context';
+import { SettingsStoreProvider } from '@/contexts/settings-context';
 import { getDefaultFolderPath } from '@/helpers/files';
 import { safeParseJsonObject } from '@/helpers/json';
-import { KANBAN_VIEW_ICON, TABLE_VIEW_ICON } from '@/lib/constants';
-import { buildKanbanData } from '@/lib/data/kanban';
-import { buildTableData } from '@/lib/data/table';
+import { FDB_VIEW_ID, KANBAN_VIEW_ICON, TABLE_VIEW_ICON } from '@/lib/constants';
+import { collateFilesData } from '@/lib/files-data';
 
-import type { FolderbaseFileSettings } from '@/lib/settings';
+import type { FolderbaseViewMode } from '../lib/settings';
 
-export const FOLDERBASE_VIEW_ID = 'obsidian-folderbase';
-
-export class FolderBaseView extends TextFileView {
-	mode: FolderbaseFileSettings['mode'];
+export class FolderbaseView extends TextFileView {
+	mode: FolderbaseViewMode;
 	root?: Root;
 
 	constructor(leaf: WorkspaceLeaf) {
@@ -33,6 +30,11 @@ export class FolderBaseView extends TextFileView {
 
 	async onOpen() {
 		this.root = createRoot(this.containerEl.children[1]);
+		this.root?.render(
+			<div className="fdb-center-content">
+				<p>Loading data…</p>
+			</div>,
+		);
 	}
 
 	async onClose() {
@@ -42,7 +44,7 @@ export class FolderBaseView extends TextFileView {
 	}
 
 	getViewType() {
-		return FOLDERBASE_VIEW_ID;
+		return FDB_VIEW_ID;
 	}
 
 	getDisplayText() {
@@ -73,7 +75,7 @@ export class FolderBaseView extends TextFileView {
 			typeof fileSettings.mode !== 'string' ||
 			(fileSettings.mode !== 'table' && fileSettings.mode !== 'kanban')
 				? 'table'
-				: (String(fileSettings.mode) as FolderbaseFileSettings['mode']);
+				: (String(fileSettings.mode) as FolderbaseViewMode);
 
 		const folderPath =
 			fileSettings instanceof Error || !('folder' in fileSettings) || typeof fileSettings.folder !== 'string'
@@ -81,56 +83,41 @@ export class FolderBaseView extends TextFileView {
 				: fileSettings.folder;
 
 		this.icon = this.mode === 'table' ? TABLE_VIEW_ICON : KANBAN_VIEW_ICON;
-		this.root?.render(
-			<div className="fdb-center-content">
-				<p>Loading data…</p>
-			</div>,
-		);
-
 		void this.loadAndDisplayFolderData(folderPath);
 	}
 
 	private async loadAndDisplayFolderData(folderPath: string): Promise<void> {
 		const folder = this.app.vault.getFolderByPath(normalizePath(folderPath));
 		if (folder === null) {
-			this.renderErrorMessage(new Error(`Could not open folder "${folderPath}"`));
+			this.renderErrorMessage(new Error(`Could not open folder at "${folderPath}"`));
 
 			return;
 		}
 
-		switch (this.mode) {
-			case 'table': {
-				const tableData = await buildTableData(this.app, folder);
-				if (tableData instanceof Error) {
-					this.renderErrorMessage(tableData);
-				} else {
-					this.renderMainNode(
-						<Table
-							{...tableData}
-							folderPath={folderPath}
-						/>,
-					);
-				}
+		const result = await collateFilesData(this.app, folder, { withContents: this.mode === 'kanban' });
+		if (result instanceof Error) {
+			this.renderErrorMessage(result);
 
-				break;
-			}
-
-			case 'kanban': {
-				const kanbanData = await buildKanbanData(this.app, folder);
-				if (kanbanData instanceof Error) {
-					this.renderErrorMessage(kanbanData);
-				} else {
-					this.renderMainNode(<KanbanBoard data={kanbanData} />);
-				}
-				break;
-			}
+			return;
 		}
-	}
 
-	private renderMainNode(node: ReactNode) {
+		const { data, allFrontmatterKeys } = result;
+		if (data.length === 0 || allFrontmatterKeys.size === 0) {
+			// TODO: Display empty message
+			return;
+		}
+
 		this.root?.render(
 			<StrictMode>
-				<AppContext.Provider value={this.app}>{node}</AppContext.Provider>
+				<SettingsStoreProvider>
+					<AppContext.Provider value={this.app}>
+						<FolderbaseMain
+							data={data}
+							keys={allFrontmatterKeys}
+							folderPath={folderPath}
+						/>
+					</AppContext.Provider>
+				</SettingsStoreProvider>
 			</StrictMode>,
 		);
 	}
@@ -138,11 +125,10 @@ export class FolderBaseView extends TextFileView {
 	private renderErrorMessage(error: Error) {
 		this.root?.render(
 			<div className="fdb-center-content">
-				<div className="fdb-flex">
+				<div className="fdb-flex-row">
 					<Icon
 						id="triangle-alert"
 						color="var(--text-error)"
-						ariaLabel="error"
 					/>
 					<p className="fdb-error-message">{error.message}</p>
 				</div>

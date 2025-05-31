@@ -1,0 +1,13 @@
+button.fdb-icon-button.fdb-icon-button {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-1);
+
+	flex: 0 0 auto;
+
+	border-radius: var(--radius-s);
+
+	&:hover {
+		background-color: var(--background-modifier-hover);
+	}
+}

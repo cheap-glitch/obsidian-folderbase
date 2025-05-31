@@ -1,14 +1,10 @@
-export interface FileLink {
-	href: string;
-	anchor: string;
-}
-
-export type FrontMatterValue = number | string | string[] | null;
-export type FormattedFrontMatterValue = FrontMatterValue | FileLink | Array<string | FileLink>;
-export type FileFrontMatter = Record<string, FrontMatterValue>;
+import type { FormattedFrontMatterValue } from './frontmatter';
 
 export interface ColumnData {
-	filelink: FileLink;
+	file: {
+		path: string;
+		basename: string;
+	};
 	frontmatter: Record<string, FormattedFrontMatterValue>;
 }
 

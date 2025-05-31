@@ -1,8 +1,12 @@
 import { Component, MarkdownRenderer } from 'obsidian';
 import { useEffect, useRef } from 'react';
 
+import { IconButton } from '@/components/ui/IconButton';
+
+import { useSettingsStore } from '@/contexts/settings-context';
 import { getElementChildIndex, removeAllChildren } from '@/helpers/dom';
-import { setMarkdownTaskState, transformTextAtPosition } from '@/helpers/markdown';
+import { setMarkdownTaskState } from '@/helpers/markdown';
+import { transformTextAtPosition } from '@/helpers/text';
 import { useApp } from '@/hooks/use-app';
 import { useAsyncEffect } from '@/hooks/use-async-effects';
 
@@ -10,10 +14,13 @@ import type { KanbanCardData } from '@/types/kanban';
 
 import './KanbanCard.css';
 
-export function KanbanCard({ filePath, title, markdownContent }: KanbanCardData) {
-	const app = useApp();
-	const contentWrapper = useRef<HTMLDivElement | null>(null);
+import { openFileInNewTab } from '@/helpers/files';
 
+export function KanbanCard({ filePath, title, frontmatter, markdownContent }: KanbanCardData) {
+	const app = useApp();
+	const { showCardTitles, showCardFrontmatter } = useSettingsStore(({ kanban }) => kanban);
+
+	const contentWrapper = useRef<HTMLDivElement | null>(null);
 	const rendererComponent = useRef<Component | undefined>(undefined);
 	if (!rendererComponent.current) {
 		rendererComponent.current = new Component();
@@ -120,7 +127,25 @@ export function KanbanCard({ filePath, title, markdownContent }: KanbanCardData)
 
 	return (
 		<div className="fdb-kanban-card">
-			<h4 className="fdb-kanban-card-title">{title}</h4>
+			<header className="fdb-flex-row fdb-kanban-card-header">
+				{showCardTitles && <h5 className="fdb-kanban-card-title">{title}</h5>}
+				<div className="fdb-flex-spacer" />
+				<IconButton
+					className="fdb-kanban-card-edit-button"
+					iconId="pencil"
+					onClick={() => {
+						openFileInNewTab(app, filePath);
+					}}
+				/>
+			</header>
+			{showCardFrontmatter && (
+				<div>
+					{/* __CUSTOM__ */}
+					{frontmatter.Créneau && (
+						<p className="fdb-kanban-card-frontmatter">{String(frontmatter.Créneau)}</p>
+					)}
+				</div>
+			)}
 			<div
 				ref={contentWrapper}
 				className="fdb-kanban-card-contents"

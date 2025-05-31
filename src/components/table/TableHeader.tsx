@@ -29,7 +29,7 @@ export function TableHeader({ table }: { table: Table<ColumnData> }) {
 							>
 								<button
 									type="button"
-									className="fdb-cell-ui fdb-header-button"
+									className="fdb-input-unstyled fdb-header-button"
 									title={
 										header.column.getCanSort()
 											? header.column.getNextSortingOrder() === 'asc'

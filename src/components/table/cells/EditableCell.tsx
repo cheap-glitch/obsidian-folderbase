@@ -4,7 +4,8 @@ import { InputCell } from './InputCell';
 import { SelectCell } from './SelectCell';
 
 import type { Column, Getter, Row, Table } from '@tanstack/react-table';
-import type { CellInputType, ColumnData, FormattedFrontMatterValue, FrontMatterValue } from '@/types/table';
+import type { FormattedFrontMatterValue, FrontMatterValue } from '@/types/frontmatter';
+import type { CellInputType, ColumnData } from '@/types/table';
 
 export function EditableCell({
 	inputType,
@@ -34,7 +35,7 @@ export function EditableCell({
 	}, [initialValue]);
 
 	function updateCellData() {
-		void updateFileFrontmatter(row.original.filelink.href, columnId, value);
+		void updateFileFrontmatter(row.original.file.path, columnId, value);
 		table.options.meta?.updateData(row.index, columnId, value);
 	}
 

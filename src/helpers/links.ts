@@ -1,6 +1,6 @@
 import { type App, normalizePath } from 'obsidian';
 
-import type { FileLink } from '@/types/table';
+import type { FileLink } from '@/types/frontmatter';
 
 const WIKI_LINK_REGEX = /^\[\[[^\]]+\]\]$/u;
 

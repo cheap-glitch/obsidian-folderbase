@@ -1,7 +1,7 @@
 import { isWikiLink, parseWikiLink } from '@/helpers/links';
 
 import type { App, TFile } from 'obsidian';
-import type { FileFrontMatter, FormattedFrontMatterValue } from '@/types/table';
+import type { FileFrontMatter, FormattedFrontMatterValue } from '@/types/frontmatter';
 
 export async function getFormattedFileFrontMatter(
 	app: App,
@@ -39,4 +39,21 @@ export async function getFormattedFileFrontMatter(
 	});
 
 	return data;
+}
+
+export async function updateFileFrontMatter(
+	app: App,
+	filePath: string,
+	updater: (frontmatterObject: FileFrontMatter) => void,
+): Promise<void> {
+	const file = app.vault.getFileByPath(filePath);
+	if (!file) {
+		throw new Error(`Could not find file at "${filePath}"`);
+	}
+
+	await app.fileManager.processFrontMatter(file, (frontmatterObject?: FileFrontMatter) => {
+		if (frontmatterObject) {
+			updater(frontmatterObject);
+		}
+	});
 }

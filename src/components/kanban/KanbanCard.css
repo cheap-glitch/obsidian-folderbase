@@ -1,11 +1,18 @@
 .fdb-kanban-card {
-	width: 300px;
-	height: 150px;
+	width: 400px;
+	height: 200px;
 	overflow-y: scroll;
 
-	border: 1px solid var(--background-modifier-border);
+	margin-bottom: var(--size-4-1);
 
+	border-radius: var(--radius-s);
 	background-color: var(--background-secondary);
+	box-shadow:
+		0px 2px 1px -1px rgba(0, 0, 0, 0.2),
+		0px 1px 1px 0px rgba(0, 0, 0, 0.14),
+		0px 1px 3px 0px rgba(0, 0, 0, 0.12);
+
+	cursor: grab;
 
 	&:hover {
 		background-color: var(--background-modifier-hover);
@@ -13,6 +20,24 @@
 	}
 }
 
+/* Hack to match a card being dragged or a card in a column being dragged */
+div[data-rfd-draggable-id][style*="position: fixed;"] > div > .fdb-kanban-card,
+div[data-rfd-draggable-id^="column-"][style*="position: fixed;"] .fdb-kanban-card {
+	/* Multiply offset and blur radius by 5 to increase card "elevation" */
+	box-shadow:
+		0px 10px 5px -1px rgba(0, 0, 0, 0.2),
+		0px 5px 5px 0px rgba(0, 0, 0, 0.14),
+		0px 5px 15px 0px rgba(0, 0, 0, 0.12);
+}
+
 .fdb-kanban-card-title {
 	margin-inline-start: var(--size-4-4);
+}
+
+.fdb-kanban-card-frontmatter {
+	font-weight: var(--font-bold);
+}
+
+.fdb-kanban-card-edit-button:not(:hover) .fdb-icon {
+	color: var(--text-faint);
 }

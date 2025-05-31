@@ -1,6 +1,11 @@
-.fdb-flex {
+.fdb-flex-row {
 	display: flex;
-	gap: 10px;
+	align-items: center;
+	gap: var(--size-4-2);
+}
+
+.fdb-flex-spacer {
+	flex: 100;
 }
 
 .fdb-center-content {
@@ -9,20 +14,19 @@
 }
 
 .fdb-error-message {
-	font-weight: bold;
+	font-weight: var(--font-bold);
 	color: var(--text-error);
 }
 
-.fdb-cell-ui.fdb-cell-ui {
+.fdb-input-unstyled.fdb-input-unstyled {
 	display: block;
 	margin: 0;
 
-	font: inherit;
-	outline: inherit;
-
 	border: none;
 	border-radius: 0;
+	outline: inherit;
 
+	font: inherit;
 	color: inherit;
 	background: none;
 	box-shadow: none;

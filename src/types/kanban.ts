@@ -1,9 +1,11 @@
 import type { Card, KanbanBoard as KanbanData } from '@caldwell619/react-kanban';
+import type { FormattedFileFrontMatter } from './frontmatter';
 
 export interface KanbanCardData extends Card {
-	filePath: string;
 	columnId: string;
+	filePath: string;
 	title: string;
+	frontmatter: FormattedFileFrontMatter;
 	markdownContent: string;
 }
 
