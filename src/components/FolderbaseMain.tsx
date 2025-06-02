@@ -1,25 +1,38 @@
 import { useEffect } from 'react';
 
+import { useSettings } from '@/contexts/settings-context';
+
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { Table } from '@/components/table/Table';
 
-import { useSettingsStore } from '@/contexts/settings-context';
 import { EventManager } from '@/lib/event-manager';
 
 import type { FileData } from '@/lib/files-data';
-import type { FolderbaseViewMode } from '@/lib/settings';
+import type { FolderbaseViewSettings } from '@/lib/settings';
+import type { FolderbaseViewMode } from '@/types/settings';
 
 // TODO: Load files contents when switching from initally a table to a kanban view
 export function FolderbaseMain({
-	viewFilePath,
-	...props
+	initialData,
+	initialKeys,
+	filePath: viewFilePath,
+	folderPath,
+	onSettingsUpdated,
 }: {
-	data: FileData[];
-	keys: Set<string>;
+	initialData: FileData[];
+	initialKeys: Set<string>;
+	filePath: string;
 	folderPath: string;
-	viewFilePath: string;
+	onSettingsUpdated: (settings: FolderbaseViewSettings) => void;
 }) {
-	const settings = useSettingsStore((settings) => settings);
+	// The store isn't actually driving most of the component updates – it's mostly used
+	// to keep a single source of truth for every setting at the top of the component hierarchy
+	const settings = useSettings((settings) => settings);
+
+	// Propagate the local settings back up to the `TextFileView` instance
+	useEffect(() => {
+		onSettingsUpdated(settings);
+	});
 
 	function handleSetViewMode({ mode, filePath }: { mode?: FolderbaseViewMode; filePath?: string } = {}) {
 		if (mode && filePath === viewFilePath) {
@@ -38,11 +51,22 @@ export function FolderbaseMain({
 
 	switch (settings.mode) {
 		case 'table': {
-			return <Table {...props} />;
+			return (
+				<Table
+					folderPath={folderPath}
+					initialData={initialData}
+					initialKeys={initialKeys}
+				/>
+			);
 		}
 
 		case 'kanban': {
-			return <KanbanBoard {...props} />;
+			return (
+				<KanbanBoard
+					initialData={initialData}
+					initialKeys={initialKeys}
+				/>
+			);
 		}
 	}
 }

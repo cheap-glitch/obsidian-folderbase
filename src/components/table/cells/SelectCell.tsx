@@ -13,6 +13,7 @@ export function SelectCell({
 	onBlur: VoidFunction;
 	onChange: (value: string | null) => void;
 }) {
+	// TODO: Use the `<Select/>` component here?
 	return (
 		<select
 			className={clsx(

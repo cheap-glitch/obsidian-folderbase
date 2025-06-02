@@ -6,27 +6,27 @@ import { createSettingsStore, type SettingsStore } from '@/stores/settings';
 import type { FolderbaseViewSettings } from '@/lib/settings';
 
 type SettingsStoreApi = ReturnType<typeof createSettingsStore>;
-export const SettingsStoreContext = createContext<SettingsStoreApi | undefined>(undefined);
+export const SettingsContext = createContext<SettingsStoreApi | undefined>(undefined);
 
-export function SettingsStoreProvider({
+export function SettingsProvider({
 	children,
-	settings: initialSettings,
+	initialSettings,
 }: {
 	children: ReactNode;
-	settings: FolderbaseViewSettings;
+	initialSettings: FolderbaseViewSettings;
 }) {
 	const storeRef = useRef<SettingsStoreApi | null>(null);
 	if (!storeRef.current) {
 		storeRef.current = createSettingsStore(initialSettings);
 	}
 
-	return <SettingsStoreContext.Provider value={storeRef.current}>{children}</SettingsStoreContext.Provider>;
+	return <SettingsContext.Provider value={storeRef.current}>{children}</SettingsContext.Provider>;
 }
 
-export function useSettingsStore<T>(selector: (store: SettingsStore) => T): T {
-	const settingsStoreContext = useContext(SettingsStoreContext);
+export function useSettings<T>(selector: (store: SettingsStore) => T): T {
+	const settingsStoreContext = useContext(SettingsContext);
 	if (!settingsStoreContext) {
-		throw new Error('`useSettingsStore` must be used within SettingsStoreProvider');
+		throw new Error('`useSettings()` must be used within `<SettingsProvider/>`');
 	}
 
 	return useStore(settingsStoreContext, selector);

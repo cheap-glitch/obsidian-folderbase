@@ -1,10 +1,13 @@
+import { clsx } from 'clsx';
 import { Component, MarkdownRenderer } from 'obsidian';
 import { useEffect, useRef } from 'react';
 
+import { useSettings } from '@/contexts/settings-context';
+
 import { IconButton } from '@/components/ui/IconButton';
 
-import { useSettingsStore } from '@/contexts/settings-context';
 import { getElementChildIndex, removeAllChildren } from '@/helpers/dom';
+import { openFileInNewLeaf } from '@/helpers/files';
 import { setMarkdownTaskState } from '@/helpers/markdown';
 import { transformTextAtPosition } from '@/helpers/text';
 import { useApp } from '@/hooks/use-app';
@@ -14,17 +17,13 @@ import type { KanbanCardData } from '@/types/kanban';
 
 import './KanbanCard.css';
 
-import { openFileInNewTab } from '@/helpers/files';
-
-export function KanbanCard({ filePath, title, frontmatter, markdownContent }: KanbanCardData) {
+export function KanbanCard({ title, data, isDragged = false }: KanbanCardData & { isDragged?: boolean }) {
 	const app = useApp();
-	const { showCardTitles, showCardFrontmatter } = useSettingsStore((settings) => settings.kanban);
+	const { columnsKey, showCardTitles, showCardFrontmatter, openCardFilesInNew } = useSettings(
+		(settings) => settings.kanban,
+	);
 
 	const contentWrapper = useRef<HTMLDivElement | null>(null);
-	const rendererComponent = useRef<Component | undefined>(undefined);
-	if (!rendererComponent.current) {
-		rendererComponent.current = new Component();
-	}
 
 	// TODO: Extract this!
 	async function onTaskChecked(event: Event): Promise<void> {
@@ -70,7 +69,7 @@ export function KanbanCard({ filePath, title, frontmatter, markdownContent }: Ka
 		}
 
 		try {
-			const file = app.vault.getFileByPath(filePath);
+			const file = app.vault.getFileByPath(data.filePath);
 			if (!file) {
 				return;
 			}
@@ -104,6 +103,11 @@ export function KanbanCard({ filePath, title, frontmatter, markdownContent }: Ka
 		};
 	}, []);
 
+	const rendererComponent = useRef<Component | undefined>(undefined);
+	if (!rendererComponent.current) {
+		rendererComponent.current = new Component();
+	}
+
 	useAsyncEffect(async (signal: AbortSignal): Promise<void> => {
 		if (signal.aborted || !contentWrapper.current || !rendererComponent.current) {
 			return;
@@ -118,35 +122,40 @@ export function KanbanCard({ filePath, title, frontmatter, markdownContent }: Ka
 
 		await MarkdownRenderer.render(
 			app,
-			markdownContent,
+			data.markdownContent,
 			contentWrapper.current,
-			filePath,
+			data.filePath,
 			rendererComponent.current,
 		);
 	});
 
 	return (
-		<div className="fdb-kanban-card">
-			<header className="fdb-flex-row fdb-kanban-card-header">
-				<div>
-					{showCardTitles && <h5 className="fdb-kanban-card-title">{title}</h5>}
-					{showCardFrontmatter && (
-						<>
-							{/* __CUSTOM__ */}
-							{frontmatter.Créneau && (
-								<h5 className="fdb-kanban-card-title">{String(frontmatter.Créneau)}</h5>
-							)}
-						</>
-					)}
-				</div>
-				<div className="fdb-flex-spacer" />
-				<IconButton
-					className="fdb-kanban-card-edit-button"
-					iconId="pencil"
-					onClick={() => {
-						openFileInNewTab(app, filePath);
-					}}
-				/>
+		<div className={clsx('fdb-kanban-card', isDragged && 'is-dragged')}>
+			<IconButton
+				className="fdb-kanban-card-edit-button"
+				iconId="pencil"
+				onClick={() => {
+					openFileInNewLeaf(app, data.filePath, openCardFilesInNew);
+				}}
+			/>
+
+			<header className="fdb-kanban-card-header">
+				{showCardTitles && <h5 className="fdb-kanban-card-title">{title}</h5>}
+				{showCardFrontmatter &&
+					Object.entries(data.frontmatter).map(([key, value]) => {
+						if (key === columnsKey) {
+							return;
+						}
+
+						return (
+							<p
+								key={key}
+								className="fdb-kanban-card-frontmatter"
+							>
+								{String(value)}
+							</p>
+						);
+					})}
 			</header>
 			<div
 				ref={contentWrapper}

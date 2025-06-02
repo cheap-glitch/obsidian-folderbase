@@ -57,6 +57,14 @@
 							":BLANK_LINE:",
 							{
 								"source": [
+									"@/contexts/**",
+									"@/stores/**"
+								],
+								"type": false
+							},
+							":BLANK_LINE:",
+							{
+								"source": [
 									"@/views/**",
 									"@/components/**"
 								],
@@ -77,6 +85,12 @@
 							},
 							{
 								"type": true
+							},
+							":BLANK_LINE:",
+							{
+								"source": [
+									"./**/*.module.css"
+								]
 							}
 						]
 					}

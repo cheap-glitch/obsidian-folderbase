@@ -5,54 +5,39 @@ import {
 	getSortedRowModel,
 	useReactTable,
 } from '@tanstack/react-table';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { TableHeader } from '@/components/table/TableHeader';
 
-import { isInFolder, openFileInNewTab } from '@/helpers/files';
+import { isInFolder, openFileInNewLeaf } from '@/helpers/files';
 import { isSameSet } from '@/helpers/sets';
 import { useApp } from '@/hooks/use-app';
-import { buildColumns } from '@/lib/columns';
+import { useUpdateFileFrontmatter } from '@/hooks/use-update-file-frontmatter';
 import { EventManager } from '@/lib/event-manager';
-import { getFormattedFileFrontMatter, updateFileFrontMatter as updateFileFrontMatter_ } from '@/lib/frontmatter';
+import { getFormattedFileFrontMatter } from '@/lib/frontmatter';
 import { __CUSTOM__STATUS_EMOJIS, __custom__sortTags, sortEnum, sortFileLink } from '@/lib/sorting';
+import { buildColumns } from '@/lib/table';
 
 import type { Row, SortingState } from '@tanstack/react-table';
 import type { TFile } from 'obsidian';
 import type { FileData } from '@/lib/files-data';
-import type { FormattedFrontMatterValue, FrontMatterValue } from '@/types/frontmatter';
+import type { FormattedFrontMatterValue } from '@/types/frontmatter';
 import type { ColumnData } from '@/types/table';
 
 // TODO: import classes from './Table.module.css';
 import './Table.css';
 
 export function Table({
-	data: initialData,
-	keys: initialKeys,
 	folderPath,
+	initialData,
+	initialKeys,
 }: {
-	keys: Set<string>;
-	data: FileData[];
 	folderPath: string;
+	initialData: FileData[];
+	initialKeys: Set<string>;
 }) {
 	const app = useApp();
-	const ignoredFilePathEvents = useRef<Set<string>>(new Set<string>());
-
-	function skipNextFileUpdateEvent(filePath: string) {
-		ignoredFilePathEvents.current.add(filePath);
-	}
-
-	async function updateFileFrontMatter(filePath: string, key: string, value: FrontMatterValue): Promise<void> {
-		skipNextFileUpdateEvent(filePath);
-
-		try {
-			await updateFileFrontMatter_(app, filePath, (frontmatter) => {
-				frontmatter[key] = value;
-			});
-		} catch (error) {
-			console.error(error); // TODO: Show error in alert
-		}
-	}
+	const { ignoredFilePathEvents } = useUpdateFileFrontmatter();
 
 	const [keys, setKeys] = useState(() => new Set(initialKeys));
 	const [data, setData] = useState(() => {
@@ -65,11 +50,9 @@ export function Table({
 		}));
 	});
 	const [columns, setColumns] = useState(() =>
-		buildColumns({
-			keys: initialKeys,
-			updateFileFrontMatter,
+		buildColumns(initialKeys, {
 			onFileLinkClick: (filePath) => {
-				openFileInNewTab(app, filePath);
+				openFileInNewLeaf(app, filePath, 'tab'); // TODO: Make this a setting
 			},
 		}),
 	);
@@ -198,11 +181,9 @@ export function Table({
 			if (!isSameSet(keys, updatedKeys)) {
 				setKeys(updatedKeys);
 				setColumns(
-					buildColumns({
-						keys: updatedKeys,
-						updateFileFrontMatter,
+					buildColumns(updatedKeys, {
 						onFileLinkClick: (filePath) => {
-							openFileInNewTab(app, filePath);
+							openFileInNewLeaf(app, filePath, 'tab'); // TODO: Make this a setting
 						},
 					}),
 				);

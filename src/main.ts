@@ -2,10 +2,12 @@ import { MarkdownView, type Menu, normalizePath, Plugin, type TAbstractFile, TFi
 
 import { FolderbaseView } from '@/views/folderbase';
 
-import { FDB_FILE_EXTENSION, FDB_VIEW_ID, KANBAN_VIEW_ICON, TABLE_VIEW_ICON } from '@/lib/constants';
+import { FDB_FILE_EXTENSION, FDB_VIEW_ICONS, FDB_VIEW_ID } from '@/lib/constants';
 import { EventManager } from '@/lib/event-manager';
+import { safeParseJsonObject } from './helpers/json';
 
-import type { FolderbaseFileSettings } from './lib/settings';
+import type { JsonObject } from 'type-fest';
+import type { PartialFolderbaseViewSettings } from '@/lib/settings';
 
 import './utilities.css';
 
@@ -38,7 +40,7 @@ export default class FolderbasePlugin extends Plugin {
 			const otherMode = view.mode === 'table' ? 'kanban' : 'table';
 
 			item.setTitle(`Switch to ${otherMode} view`)
-				.setIcon(view.mode === 'table' ? KANBAN_VIEW_ICON : TABLE_VIEW_ICON)
+				.setIcon(FDB_VIEW_ICONS[otherMode])
 				.onClick(() => {
 					view.setMode(otherMode);
 					EventManager.getInstance().emit('set-view-mode', {
@@ -71,12 +73,12 @@ export default class FolderbasePlugin extends Plugin {
 				menu.addSeparator();
 				menu.addItem((item) => {
 					item.setTitle('New table view from folder')
-						.setIcon(TABLE_VIEW_ICON)
+						.setIcon(FDB_VIEW_ICONS.table)
 						.onClick(() => this.createFolderbaseTableFile(node.path));
 				});
 				menu.addItem((item) => {
 					item.setTitle('New kanban view from folder')
-						.setIcon(KANBAN_VIEW_ICON)
+						.setIcon(FDB_VIEW_ICONS.kanban)
 						.onClick(() => this.createFolderbaseKanbanFile(node.path));
 				});
 				menu.addSeparator();
@@ -114,7 +116,6 @@ export default class FolderbasePlugin extends Plugin {
 
 	private async createFolderbaseTableFile(folderPath: string): Promise<void> {
 		return this.createFolderbaseFile(folderPath, {
-			//
 			mode: 'table',
 			folder: normalizePath(folderPath),
 		});
@@ -122,24 +123,35 @@ export default class FolderbasePlugin extends Plugin {
 
 	private async createFolderbaseKanbanFile(folderPath: string): Promise<void> {
 		return this.createFolderbaseFile(folderPath, {
-			//
 			mode: 'kanban',
 			folder: normalizePath(folderPath),
 		});
 	}
 
-	private async createFolderbaseFile(folderPath: string, initialSettings: FolderbaseFileSettings): Promise<void> {
+	private async createFolderbaseFile(
+		folderPath: string,
+		initialSettings: PartialFolderbaseViewSettings,
+	): Promise<void> {
 		try {
 			const file = await this.app.vault.create(
 				`${folderPath}.${FDB_FILE_EXTENSION}`,
 				JSON.stringify(initialSettings),
 			);
 
-			// Open the file in a new tab
-			await this.app.workspace.getLeaf(true).openFile(file);
+			await this.app.workspace.getLeaf('tab').openFile(file);
 		} catch (error) {
-			// TODO: Display error in alert
-			console.error(error);
+			console.error(error); // TODO: Display error in alert
+		}
+	}
+
+	private async getMetadataMenuPluginData(): Promise<JsonObject | undefined> {
+		try {
+			const rawData = await this.app.vault.adapter.read('.obsidian/plugins/metadata-menu/data.json');
+			const result = safeParseJsonObject(rawData);
+
+			return result instanceof Error ? undefined : result;
+		} catch {
+			return undefined;
 		}
 	}
 }

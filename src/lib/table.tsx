@@ -5,18 +5,17 @@ import { Link } from '@/components/ui/Link';
 import { capitalize } from '@/helpers/text';
 
 import type { ColumnDef, Getter } from '@tanstack/react-table';
-import type { FormattedFrontMatterValue, FrontMatterValue } from '@/types/frontmatter';
+import type { FormattedFrontMatterValue } from '@/types/frontmatter';
 import type { CellInputType, ColumnData } from '@/types/table';
 
-export function buildColumns({
-	keys,
-	onFileLinkClick,
-	updateFileFrontMatter,
-}: {
-	keys: Set<string>;
-	onFileLinkClick: (filePath: string) => void;
-	updateFileFrontMatter: (filePath: string, key: string, value: FrontMatterValue) => Promise<void>;
-}): ColumnDef<ColumnData>[] {
+export function buildColumns(
+	keys: Set<string>,
+	{
+		onFileLinkClick,
+	}: {
+		onFileLinkClick: (filePath: string) => void;
+	},
+): ColumnDef<ColumnData>[] {
 	const columns: ColumnDef<ColumnData>[] = [
 		{
 			id: '__FDB_FILELINK__',
@@ -82,7 +81,6 @@ export function buildColumns({
 						<EditableCell
 							{...params}
 							inputType={inputType}
-							updateFileFrontmatter={updateFileFrontMatter}
 						/>
 					)
 				: ({ getValue }) => (

@@ -1,6 +1,6 @@
 import { FDB_FILE_EXTENSION } from '@/lib/constants';
 
-import type { App, TFile } from 'obsidian';
+import type { App, PaneType, TFile } from 'obsidian';
 
 export function isInFolder(
 	file: TFile,
@@ -23,8 +23,8 @@ export function isInFolder(
 	return false;
 }
 
-export function openFileInNewTab(app: App, filePath: string) {
-	const leaf = app.workspace.getLeaf('tab');
+export function openFileInNewLeaf(app: App, filePath: string, leafType: PaneType) {
+	const leaf = app.workspace.getLeaf(leafType);
 	const file = app.vault.getFileByPath(filePath);
 
 	if (file) {

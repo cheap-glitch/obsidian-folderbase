@@ -1,11 +1,5 @@
-export function getValueAtIndex<T>(set: Set<T>, index: number): T | undefined {
-	for (const [valueIndex, value] of set.entries()) {
-		if (valueIndex === index) {
-			return value;
-		}
-	}
-
-	return undefined;
+export function getSetValueAtIndex<T>(set: Set<T>, index: number): T | undefined {
+	return [...set.values()][index];
 }
 
 export function isSameSet<T>(setA: Set<T>, setB: Set<T>): boolean {

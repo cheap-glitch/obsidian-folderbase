@@ -13,6 +13,10 @@
 	place-content: center;
 }
 
+.fdb-info-message {
+	color: var(--text-muted);
+}
+
 .fdb-error-message {
 	font-weight: var(--font-bold);
 	color: var(--text-error);

@@ -1,15 +1,18 @@
 .fdb-kanban-card {
-	width: 400px;
+	position: relative;
+	width: 350px;
 
-	margin-bottom: var(--size-4-2);
+	margin: 0;
 	padding-bottom: var(--size-4-2);
 
 	border-radius: var(--radius-s);
 	background-color: var(--background-secondary);
+
+	--e: 1; /* Elevation level */
 	box-shadow:
-		0px 2px 1px -1px rgba(0, 0, 0, 0.2),
-		0px 1px 1px 0px rgba(0, 0, 0, 0.14),
-		0px 1px 3px 0px rgba(0, 0, 0, 0.12);
+		0px calc(2px * var(--e)) calc(1px * var(--e)) -1px rgba(0, 0, 0, 0.2),
+		0px calc(1px * var(--e)) calc(1px * var(--e)) 0px rgba(0, 0, 0, 0.14),
+		0px calc(1px * var(--e)) calc(3px * var(--e)) 0px rgba(0, 0, 0, 0.12);
 
 	cursor: grab;
 
@@ -17,19 +20,15 @@
 		background-color: var(--background-modifier-hover);
 		border-color: var(--background-modifier-border-hover);
 	}
+
+	&.is-dragged {
+		--e: 5;
+		cursor: grabbing;
+	}
 }
 
-/* Hack to match a card being dragged or a card in a column being dragged */
-div[data-rfd-draggable-id][style*="position: fixed;"] > div > .fdb-kanban-card,
-div[data-rfd-draggable-id^="column-"][style*="position: fixed;"] .fdb-kanban-card {
-	/* Multiply offset and blur radius by 5 to increase card "elevation" */
-	box-shadow:
-		0px 10px 5px -1px rgba(0, 0, 0, 0.2),
-		0px 5px 5px 0px rgba(0, 0, 0, 0.14),
-		0px 5px 15px 0px rgba(0, 0, 0, 0.12);
-}
-
-.fdb-kanban-card-title {
+.fdb-kanban-card-title,
+.fdb-kanban-card-frontmatter {
 	margin-inline-start: var(--size-4-4);
 }
 
@@ -37,6 +36,12 @@ div[data-rfd-draggable-id^="column-"][style*="position: fixed;"] .fdb-kanban-car
 	font-weight: var(--font-bold);
 }
 
-.fdb-kanban-card-edit-button:not(:hover) .fdb-icon {
-	color: var(--text-faint);
+.fdb-kanban-card-edit-button {
+	position: absolute;
+	top: var(--size-4-2);
+	right: var(--size-4-2);
+
+	&:not(:hover) .fdb-icon {
+		color: var(--text-faint);
+	}
 }

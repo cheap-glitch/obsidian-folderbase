@@ -1,0 +1,7 @@
+.fdb-kanban-column-contents {
+	display: flex;
+	flex-direction: column;
+	align-items: start;
+
+	gap: var(--size-4-2);
+}

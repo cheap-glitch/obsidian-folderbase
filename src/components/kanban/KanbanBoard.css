@@ -1,3 +1,16 @@
-.react-kanban-column {
-	margin: var(--size-4-5);
+.fdb-kanban-board-columns {
+	display: flex;
+	align-items: start;
+
+	gap: var(--size-4-5);
+}
+
+.fdb-kanban-board-settings {
+	display: flex;
+	align-items: center;
+	justify-content: end;
+}
+
+.fdb-kanban-settings-select {
+	flex: 0 0 auto;
 }
