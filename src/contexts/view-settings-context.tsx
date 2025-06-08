@@ -1,32 +1,32 @@
 import { createContext, type ReactNode, useContext, useRef } from 'react';
 import { useStore } from 'zustand';
 
-import { createSettingsStore, type SettingsStore } from '@/stores/settings';
+import { createKanbanViewSettingsStore } from '@/stores/view-settings';
 
-import type { FolderbaseViewSettings } from '@/lib/settings';
+import type { KanbanViewSettings, KanbanViewSettingsStore } from '@/stores/view-settings';
 
-type SettingsStoreApi = ReturnType<typeof createSettingsStore>;
+type SettingsStoreApi = ReturnType<typeof createKanbanViewSettingsStore>;
 export const SettingsContext = createContext<SettingsStoreApi | undefined>(undefined);
 
-export function SettingsProvider({
+export function ViewSettingsProvider({
 	children,
 	initialSettings,
 }: {
 	children: ReactNode;
-	initialSettings: FolderbaseViewSettings;
+	initialSettings: KanbanViewSettings['view'];
 }) {
 	const storeRef = useRef<SettingsStoreApi | null>(null);
 	if (!storeRef.current) {
-		storeRef.current = createSettingsStore(initialSettings);
+		storeRef.current = createKanbanViewSettingsStore({ view: initialSettings });
 	}
 
 	return <SettingsContext.Provider value={storeRef.current}>{children}</SettingsContext.Provider>;
 }
 
-export function useSettings<T>(selector: (store: SettingsStore) => T): T {
+export function useViewSettings<T>(selector: (store: KanbanViewSettingsStore) => T): T {
 	const settingsStoreContext = useContext(SettingsContext);
 	if (!settingsStoreContext) {
-		throw new Error('`useSettings()` must be used within `<SettingsProvider/>`');
+		throw new Error('`useViewSettings()` must be used within `<ViewSettingsProvider/>`');
 	}
 
 	return useStore(settingsStoreContext, selector);

@@ -12,6 +12,7 @@
 		"version": "node scripts/version-bump.mjs && git add manifest.json versions.json"
 	},
 	"dependencies": {
+		"@hello-pangea/dnd": "^18.0.1",
 		"@tanstack/react-table": "^8.21.3",
 		"clsx": "^2.1.1",
 		"react": "^19.1.0",

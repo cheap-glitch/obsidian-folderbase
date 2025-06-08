@@ -51,6 +51,18 @@ function getEnumIndex(enumArray: Array<string | undefined>, value: string | null
 	return index;
 }
 
+export const __CUSTOM__CRENEAUX = [
+	'🔎 Recherche taf',
+	'💻 Dev',
+	'🎸 Guitare',
+	'🎓 Apprentissage',
+	'📖 Lecture',
+	'🏸 Sport & musculation',
+	'🎧 DJing',
+	'🎙️ Streaming',
+	'📺 Divertissements',
+];
+
 export const __CUSTOM__STATUS_EMOJIS = ['📖', '📌', '✍️', undefined, '✅'];
 
 export function __custom__sortTags(rowA: Row<ColumnData>, rowB: Row<ColumnData>, columnId: string): number {

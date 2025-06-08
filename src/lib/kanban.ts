@@ -1,24 +1,24 @@
 import { sortByMatchingOrder } from '@/helpers/arrays';
-import { capitalize } from '@/helpers/text';
+import { __CUSTOM__CRENEAUX } from './sorting';
 
 import type { FileData } from '@/lib/files-data';
-import type { ColumnsOrdering } from '@/lib/settings';
-import type { KanbanCardData, KanbanColumnData } from '@/types/kanban';
+import type { KanbanCardData } from '@/types/kanban';
 
+/*
 export function buildInitialColumns(
 	cards: KanbanCardData[],
 	{
-		columnsKey,
+		groupingKey,
 		columnsOrder,
-		columnsOrdering,
+		columnsCardsOrders,
 	}: {
 		//
-		columnsKey: string;
+		groupingKey: string;
 		columnsOrder?: string[];
-		columnsOrdering?: ColumnsOrdering;
+		columnsCardsOrders?: Record<string, string[]>;
 	},
 ): KanbanColumnData[] {
-	const columnIds = new Set<string>(cards.map((card) => String(card.data.frontmatter[columnsKey])));
+	const columnIds = new Set<string>(cards.map((card) => String(card.data.frontmatter[groupingKey])));
 	const sortedColumnIds = columnsOrder
 		? sortByMatchingOrder({
 				model: columnsOrder,
@@ -27,8 +27,8 @@ export function buildInitialColumns(
 		: [...columnIds];
 
 	return sortedColumnIds.map((id) => {
-		const ordering = columnsOrdering?.[id];
-		const columnCards = cards.filter((card) => card.data.frontmatter[columnsKey] === id);
+		const ordering = columnsCardsOrders?.[id];
+		const columnCards = cards.filter((card) => card.data.frontmatter[groupingKey] === id);
 		const sortedColumnCards = Array.isArray(ordering)
 			? sortByMatchingOrder<string, KanbanCardData>({
 					model: ordering,
@@ -43,6 +43,29 @@ export function buildInitialColumns(
 			cardsIds: sortedColumnCards.map((card) => card.id),
 		};
 	});
+}
+*/
+
+export function getSortedColumnCards({
+	columnId,
+	cards,
+	groupingKey,
+	columnCardsOrder,
+}: {
+	columnId: string;
+	cards: KanbanCardData[];
+	groupingKey: string;
+	columnCardsOrder?: string[];
+}): KanbanCardData[] {
+	const columnCards = cards.filter((card) => card.data.frontmatter[groupingKey] === columnId);
+
+	return columnCardsOrder
+		? sortByMatchingOrder({
+				input: columnCards,
+				model: groupingKey === 'Mois' ? __CUSTOM__CRENEAUX : columnCardsOrder,
+				matcher: groupingKey === 'Mois' ? (card) => card.data.frontmatter.Créneau : (card) => card.id, // __CUSTOM__
+			})
+		: columnCards;
 }
 
 export function buildKanbanCards(data: FileData[]): KanbanCardData[] {

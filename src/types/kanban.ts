@@ -1,11 +1,5 @@
 import type { FormattedFileFrontMatter } from './frontmatter';
 
-export interface KanbanColumnData {
-	id: string;
-	title: string;
-	cardsIds: string[];
-}
-
 export interface KanbanCardData {
 	id: string;
 	title: string;

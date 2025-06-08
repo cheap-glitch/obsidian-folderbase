@@ -2,12 +2,16 @@ import { MarkdownView, type Menu, normalizePath, Plugin, type TAbstractFile, TFi
 
 import { FolderbaseView } from '@/views/folderbase';
 
+import { safeParseJsonObject } from '@/helpers/json';
 import { FDB_FILE_EXTENSION, FDB_VIEW_ICONS, FDB_VIEW_ID } from '@/lib/constants';
 import { EventManager } from '@/lib/event-manager';
-import { safeParseJsonObject } from './helpers/json';
+import {
+	FOLDERBASE_SETTINGS_VERSION,
+	type FolderbaseFullSettings,
+	type PartialFolderbaseSettings,
+} from '@/lib/settings';
 
 import type { JsonObject } from 'type-fest';
-import type { PartialFolderbaseViewSettings } from '@/lib/settings';
 
 import './utilities.css';
 
@@ -118,6 +122,7 @@ export default class FolderbasePlugin extends Plugin {
 		return this.createFolderbaseFile(folderPath, {
 			mode: 'table',
 			folder: normalizePath(folderPath),
+			kanban: {},
 		});
 	}
 
@@ -125,19 +130,18 @@ export default class FolderbasePlugin extends Plugin {
 		return this.createFolderbaseFile(folderPath, {
 			mode: 'kanban',
 			folder: normalizePath(folderPath),
+			kanban: {},
 		});
 	}
 
-	private async createFolderbaseFile(
-		folderPath: string,
-		initialSettings: PartialFolderbaseViewSettings,
-	): Promise<void> {
+	private async createFolderbaseFile(folderPath: string, initialSettings: PartialFolderbaseSettings): Promise<void> {
 		try {
-			const file = await this.app.vault.create(
-				`${folderPath}.${FDB_FILE_EXTENSION}`,
-				JSON.stringify(initialSettings),
-			);
+			const jsonSettings = JSON.stringify({
+				version: FOLDERBASE_SETTINGS_VERSION,
+				settings: initialSettings,
+			} as FolderbaseFullSettings);
 
+			const file = await this.app.vault.create(`${folderPath}.${FDB_FILE_EXTENSION}`, jsonSettings);
 			await this.app.workspace.getLeaf('tab').openFile(file);
 		} catch (error) {
 			console.error(error); // TODO: Display error in alert

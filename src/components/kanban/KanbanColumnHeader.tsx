@@ -19,6 +19,7 @@ export function KanbanColumnHeader({
 			<p className="fdb-kanban-column-items-count">{cardsCount}</p>
 			<div className="fdb-flex-spacer" />
 			<IconButton
+				className="fdb-kanban-add-card-button"
 				iconId="plus"
 				onClick={() => {
 					void id;

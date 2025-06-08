@@ -2,13 +2,14 @@
 	display: flex;
 	align-items: start;
 
-	gap: var(--size-4-5);
+	gap: var(--size-4-6);
 }
 
 .fdb-kanban-board-settings {
 	display: flex;
 	align-items: center;
 	justify-content: end;
+	gap: var(--size-4-4);
 }
 
 .fdb-kanban-settings-select {

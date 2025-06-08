@@ -38,3 +38,7 @@
 	cursor: pointer;
 	user-select: none;
 }
+
+.fdb-input-label {
+	color: var(--text-muted);
+}

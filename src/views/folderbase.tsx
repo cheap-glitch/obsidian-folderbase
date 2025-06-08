@@ -4,7 +4,9 @@ import { createRoot, type Root } from 'react-dom/client';
 import { ZodError, z } from 'zod/v4';
 
 import { AppContext } from '@/contexts/app-context';
-import { SettingsProvider } from '@/contexts/settings-context';
+import { KanbanBoardSettingsContext } from '@/contexts/board-settings-context';
+import { SettingsUpdatersContext } from '@/contexts/settings-updaters-context';
+import { ViewSettingsProvider } from '@/contexts/view-settings-context';
 
 import { FolderbaseMain } from '@/components/FolderbaseMain';
 import { Icon } from '@/components/ui/Icon';
@@ -14,16 +16,16 @@ import { safeParseJsonObject } from '@/helpers/json';
 import { getSetValueAtIndex } from '@/helpers/sets';
 import { FDB_DEFAULT_VIEW_MODE, FDB_VIEW_DEFAULT_TITLES, FDB_VIEW_ICONS, FDB_VIEW_ID } from '@/lib/constants';
 import { collateFilesData } from '@/lib/files-data';
-import { FolderbaseViewSettingsSchema } from '@/lib/settings';
+import { FOLDERBASE_SETTINGS_VERSION, FolderbaseViewSettingsSchema } from '@/lib/settings';
 
-import type { FolderbaseViewSettings } from '@/lib/settings';
+import type { FolderbaseFullSettings, FolderbaseSettings } from '@/lib/settings';
 import type { FolderbaseViewMode } from '@/types/settings';
 
 export class FolderbaseView extends TextFileView {
-	// settings?: FolderbaseViewSettings;
 	mode: FolderbaseViewMode;
 	root?: Root;
 	controller?: AbortController;
+	ignoreNextSetViewDataCall: boolean;
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -33,6 +35,7 @@ export class FolderbaseView extends TextFileView {
 		this.allowNoFile = false;
 
 		this.mode = FDB_DEFAULT_VIEW_MODE;
+		this.ignoreNextSetViewDataCall = false;
 	}
 
 	async onOpen() {
@@ -69,13 +72,42 @@ export class FolderbaseView extends TextFileView {
 		this.icon = FDB_VIEW_ICONS[mode];
 	}
 
-	private saveSettings(settings: FolderbaseViewSettings): void {
-		if (this.file) {
-			this.app.vault.process(this.file, () => JSON.stringify(settings, undefined, '\t'));
+	private async updateSavedSettings(updater: (settings: FolderbaseSettings) => FolderbaseSettings): Promise<void> {
+		if (!this.file) {
+			return;
+		}
+
+		try {
+			this.ignoreNextSetViewDataCall = true;
+
+			await this.app.vault.process(this.file, (savedSettingsJson: string) => {
+				try {
+					const savedSettings: FolderbaseFullSettings = JSON.parse(savedSettingsJson);
+					const updatedSettings: FolderbaseFullSettings = {
+						version: FOLDERBASE_SETTINGS_VERSION,
+						settings: updater(savedSettings.settings),
+					};
+
+					return JSON.stringify(updatedSettings, undefined, '\t');
+				} catch {
+					return savedSettingsJson;
+				}
+			});
+		} catch (error) {
+			this.ignoreNextSetViewDataCall = false;
+
+			console.error(error); // TODO: Display this error
 		}
 	}
 
 	setViewData(textContents: string, clear: boolean) {
+		// TODO: Find a more robust fix for this
+		if (this.ignoreNextSetViewDataCall) {
+			this.ignoreNextSetViewDataCall = false;
+
+			return;
+		}
+
 		if (clear) {
 			this.clear();
 		}
@@ -99,7 +131,8 @@ export class FolderbaseView extends TextFileView {
 			return;
 		}
 
-		const settings = parsedSettings.data;
+		// TODO: Check version
+		const { settings } = parsedSettings.data;
 		this.setMode(settings.mode);
 
 		// biome-ignore lint/style/noNonNullAssertion: `this.allowNoFile` is set to `false`
@@ -111,7 +144,7 @@ export class FolderbaseView extends TextFileView {
 	private async loadAndDisplayFolderData(
 		filePath: string,
 		folderPath: string,
-		initialSettings: FolderbaseViewSettings,
+		initialSettings: FolderbaseSettings,
 		signal: AbortSignal,
 	): Promise<void> {
 		if (signal.aborted) {
@@ -158,26 +191,60 @@ export class FolderbaseView extends TextFileView {
 
 			return;
 		}
-		if (initialSettings.kanban.columnsKey === '') {
-			initialSettings.kanban.columnsKey = defaultKabanColumnsKey;
+		if (initialSettings.kanban.board.groupingKey === '') {
+			initialSettings.kanban.board.groupingKey = defaultKabanColumnsKey;
 		}
 
 		this.root?.render(
 			<StrictMode>
-				<SettingsProvider initialSettings={initialSettings}>
-					<AppContext.Provider value={this.app}>
-						<FolderbaseMain
-							initialData={data}
-							initialKeys={allFrontmatterKeys}
-							filePath={filePath}
-							folderPath={folderPath}
-							onSettingsUpdated={(settings) => {
-								this.setMode(settings.mode);
-								this.saveSettings(settings);
-							}}
-						/>
-					</AppContext.Provider>
-				</SettingsProvider>
+				<AppContext.Provider value={this.app}>
+					<KanbanBoardSettingsContext.Provider value={initialSettings.kanban.board}>
+						<ViewSettingsProvider initialSettings={initialSettings.kanban.view}>
+							<SettingsUpdatersContext
+								value={{
+									saveViewMode: async (mode) => {
+										this.setMode(mode);
+
+										await this.updateSavedSettings((settings) => ({
+											...settings,
+											mode,
+										}));
+									},
+									saveKanbanViewSettings: async (viewSettings) =>
+										this.updateSavedSettings((settings) => ({
+											...settings,
+											kanban: {
+												board: settings.kanban.board,
+												view: viewSettings,
+											},
+										})),
+									saveKanbanBoardColumnSettings: async (groupingKey, columnSettings) =>
+										this.updateSavedSettings((settings) => ({
+											...settings,
+											kanban: {
+												view: settings.kanban.view,
+												board: {
+													groupingKey,
+													columns: {
+														...settings.kanban.board.columns,
+														[groupingKey]: columnSettings,
+													},
+												},
+											},
+										})),
+								}}
+							>
+								<FolderbaseMain
+									initialMode={initialSettings.mode}
+									initialData={data}
+									initialKeys={allFrontmatterKeys}
+									filePath={filePath}
+									folderPath={folderPath}
+								/>
+							</SettingsUpdatersContext>
+						</ViewSettingsProvider>
+					</KanbanBoardSettingsContext.Provider>
+				</AppContext.Provider>
 			</StrictMode>,
 		);
 	}

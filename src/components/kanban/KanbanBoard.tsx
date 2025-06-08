@@ -1,28 +1,144 @@
-import { useMemo, useState } from 'react';
+import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { useSettings } from '@/contexts/settings-context';
+import { KanbanBoardSettingsContext } from '@/contexts/board-settings-context';
+import { SettingsUpdatersContext } from '@/contexts/settings-updaters-context';
+import { useViewSettings } from '@/contexts/view-settings-context';
 
-import { buildInitialColumns, buildKanbanCards } from '@/lib/kanban';
-import { KanbanColumn } from './KanbanColumn';
+import { KanbanColumn } from '@/components/kanban/KanbanColumn';
+import { Checkbox } from '@/components/ui/Checkbox';
+import { Select } from '@/components/ui/Select';
+
+import { moveItemToIndex, pushMissingItems, unique } from '@/helpers/arrays';
+import { useAsyncEffect } from '@/hooks/use-async-effects';
+import { useUpdateFileFrontmatter } from '@/hooks/use-update-file-frontmatter';
+import { buildKanbanCards } from '@/lib/kanban';
 
 import type { FileData } from '@/lib/files-data';
-import type { KanbanCardData, KanbanColumnData } from '@/types/kanban';
+import type { KanbanColumnsSettings } from '@/lib/settings';
+import type { KanbanCardData } from '@/types/kanban';
 
 import './KanbanBoard.css';
 
-import { Select } from '../ui/Select';
-
 export function KanbanBoard({ initialData, initialKeys }: { initialData: FileData[]; initialKeys: Set<string> }) {
-	const settings = useSettings((settings) => settings.kanban);
-	const setColumnsKey = useSettings((settings) => settings.setColumnsKey);
-	// const setColumnsOrder = useSettings((settings) => settings.setColumnsOrder);
+	const { setFileFrontmatterProperty } = useUpdateFileFrontmatter();
+	const { saveKanbanViewSettings, saveKanbanBoardColumnSettings } = useContext(SettingsUpdatersContext);
 
-	const [keys, _setKeys] = useState(() => [...initialKeys]);
-	const cards = useMemo<KanbanCardData[]>(() => buildKanbanCards(initialData), [initialData]);
-	const columns = useMemo<KanbanColumnData[]>(() => buildInitialColumns(cards, settings), [cards, settings]);
+	const initialBoardSettings = useContext(KanbanBoardSettingsContext);
+	const allColumnsKeys = useMemo(() => [...initialKeys], [initialKeys]);
+	const [cards, setCards] = useState<KanbanCardData[]>(() => buildKanbanCards(initialData)); // TODO: use `useMemo()`?
+	const [groupingKey, setGroupingKey] = useState(() => initialBoardSettings.groupingKey);
 
-	// const wrapper = useRef<HTMLDivElement | null>(null);
-	// const { setFileFrontmatterProperty } = useUpdateFileFrontmatter();
+	function getColumnCards(columnId: string): KanbanCardData[] {
+		return cards.filter((card) => card.data.frontmatter[groupingKey] === columnId);
+	}
+
+	function getColumnsOrder(key: string): string[] {
+		return pushMissingItems(
+			initialBoardSettings.columns[groupingKey]?.order ?? [],
+			unique(cards.map((card) => String(card.data.frontmatter[key]))), // Add potentially missing column IDs at the end
+		);
+	}
+
+	function getColumnsCardsOrders(key: string): KanbanColumnsSettings['cardsOrders'] {
+		const result: KanbanColumnsSettings['cardsOrders'] = {};
+		for (const id of columnsOrder) {
+			result[id] = pushMissingItems(
+				initialBoardSettings.columns[key]?.cardsOrders[id] ?? [],
+				getColumnCards(id).map((card) => card.id), // Add potentially missing card IDs at the end
+			);
+		}
+
+		return result;
+	}
+
+	const [columnsOrder, setColumnsOrder] = useState(() => getColumnsOrder(groupingKey));
+	const [columnsCardsOrders, setColumnsCardsOrders] = useState(() => getColumnsCardsOrders(groupingKey));
+
+	useAsyncEffect(
+		async (signal: AbortSignal) => {
+			if (signal.aborted) {
+				return;
+			}
+
+			await saveKanbanBoardColumnSettings(groupingKey, {
+				order: columnsOrder,
+				cardsOrders: columnsCardsOrders,
+			});
+		},
+		[groupingKey, columnsOrder, columnsCardsOrders],
+	);
+
+	const viewSettings = useViewSettings((settings) => settings.view);
+	const setShowCardContents = useViewSettings((settings) => settings.actions.setShowCardContents);
+
+	useAsyncEffect(
+		async (signal: AbortSignal) => {
+			if (signal.aborted) {
+				return;
+			}
+
+			await saveKanbanViewSettings(viewSettings);
+		},
+		[viewSettings],
+	);
+
+	function getSortedColumnCards(columnId: string): KanbanCardData[] {
+		const columnCards: KanbanCardData[] = [];
+		for (const cardId of columnsCardsOrders[columnId]) {
+			const card = cards.find((card) => card.id === cardId);
+			if (card) {
+				columnCards.push(card);
+			}
+		}
+
+		return columnCards;
+	}
+
+	function moveCardToColumn({
+		cardId,
+		fromColumn,
+		toColumn,
+	}: {
+		cardId: string;
+		fromColumn: {
+			id: string;
+		};
+		toColumn: {
+			id: string;
+			index: number;
+		};
+	}) {
+		setCards(
+			cards.map((card) => {
+				if (card.id !== cardId) {
+					return card;
+				}
+
+				card.data.frontmatter[groupingKey] = toColumn.id;
+
+				return card;
+			}),
+		);
+
+		setColumnsCardsOrders({
+			...columnsCardsOrders,
+			[fromColumn.id]: columnsCardsOrders[fromColumn.id].filter((id) => id !== cardId),
+			[toColumn.id]: columnsCardsOrders[toColumn.id].toSpliced(toColumn.index, 0, cardId),
+		});
+
+		const card = cards.find((card) => card.id === cardId);
+		if (card) {
+			void setFileFrontmatterProperty(card.data.filePath, groupingKey, toColumn.id);
+		}
+	}
+
+	function moveCardToPositionInColumn({ columnId, from, to }: { columnId: string; from: number; to: number }) {
+		setColumnsCardsOrders({
+			...columnsCardsOrders,
+			[columnId]: moveItemToIndex(columnsCardsOrders[columnId], from, to),
+		});
+	}
 
 	/*
 	async function handleCardAdded(columnId: KanbanColumnData['id']): Promise<void> {
@@ -45,7 +161,7 @@ export function KanbanBoard({ initialData, initialKeys }: { initialData: FileDat
 			);
 
 			// TODO: Wrap this in a helper to automatically ignore the creation event?
-			await app.vault.create(filePath, generateFrontMatterText({ [columnsKey]: columnId }));
+			await app.vault.create(filePath, generateFrontMatterText({ [groupingKey]: columnId }));
 		} catch (error) {
 			console.error(error); // TODO: Display error somewhere
 		}
@@ -53,145 +169,86 @@ export function KanbanBoard({ initialData, initialKeys }: { initialData: FileDat
 	*/
 
 	// Disable containement for the parent `WorkspaceLeaf` element as it breaks the drag & drop of the cards
-	/*
+	const kanbanWrapper = useRef<HTMLDivElement | null>(null);
 	useEffect(() => {
-		const leafElement = wrapper.current?.closest<HTMLElement>('.workspace-leaf');
+		const leafElement = kanbanWrapper.current?.closest<HTMLElement>('.workspace-leaf');
 		if (leafElement) {
 			leafElement.style = 'contain: none !important';
 		}
 	}, []);
-	*/
-
-	// const [draggedCardId, setDraggedCardId] = useState<string | undefined>();
-	// const draggedCard = useMemo(() => cards.find((card) => card.id === draggedCardId), [cards, draggedCardId]);
 
 	return (
-		<div className="fdb-kanban-board">
-			{/*
-			<DndContext
-				onDragStart={({ active }: { active: { id: string } }) => {
-					setDraggedCardId(active.id);
-				}}
-				onDragEnd={() => {
-					setDraggedCardId(undefined);
+		<div
+			ref={kanbanWrapper}
+			className="fdb-kanban-board"
+		>
+			<DragDropContext
+				onDragEnd={({ reason, source, destination, draggableId: cardId }) => {
+					if (!destination || reason === 'CANCEL') {
+						return;
+					}
+
+					const { droppableId: fromColumnId, index: fromIndex } = source;
+					const { droppableId: toColumnId, index: toIndex } = destination;
+
+					// The card was re-ordered within the same column
+					if (fromColumnId === toColumnId) {
+						if (fromIndex !== toIndex) {
+							moveCardToPositionInColumn({
+								columnId: fromColumnId,
+								from: fromIndex,
+								to: toIndex,
+							});
+						}
+
+						return;
+					}
+
+					// The card was moved to another column
+					moveCardToColumn({
+						cardId,
+						fromColumn: { id: fromColumnId },
+						toColumn: { id: toColumnId, index: toIndex },
+					});
 				}}
 			>
-			*/}
-			<div className="fdb-kanban-board-settings">
-				<Select
-					className="fdb-kanban-settings-select"
-					label="Group by"
-					value={settings.columnsKey}
-					options={keys}
-					onChange={setColumnsKey}
-				/>
-			</div>
-			<div className="fdb-kanban-board-columns">
-				{columns.map((column) => (
-					<KanbanColumn
-						key={column.id}
-						{...column}
-						cards={cards.filter((card) => column.cardsIds.includes(card.id))}
+				<div className="fdb-kanban-board-settings">
+					<Checkbox
+						label="Show card contents"
+						checked={viewSettings.showCardContents}
+						onChange={setShowCardContents}
 					/>
-				))}
-			</div>
-			{/*
-				<DragOverlay
-					zIndex={2}
-					dropAnimation={{
-						duration: 250,
-						easing: 'ease-out',
-					}}
-				>
-					{draggedCard && (
-						<KanbanCard
-							{...draggedCard}
-							isDragged={true}
-							columnsKey={columnsKey}
-						/>
-					)}
-				</DragOverlay>
-				*/}
-			{/* </DndContext> */}
+					<Select
+						className="fdb-kanban-settings-select"
+						label="Group by"
+						value={groupingKey}
+						options={allColumnsKeys}
+						onChange={(value) => {
+							setGroupingKey(value);
+							setColumnsOrder(getColumnsOrder(value));
+							setColumnsCardsOrders(getColumnsCardsOrders(value));
+						}}
+					/>
+				</div>
+				<div className="fdb-kanban-board-columns">
+					{columnsOrder.map((id) => (
+						<Droppable
+							key={id}
+							droppableId={id}
+						>
+							{(provided, { isDraggingOver }) => (
+								<KanbanColumn
+									id={id}
+									cards={getSortedColumnCards(id)}
+									dndProps={provided}
+									isDragged={false} // TODO
+									isDraggedOver={isDraggingOver}
+								/>
+							)}
+						</Droppable>
+					))}
+				</div>
+			</DragDropContext>
 		</div>
 	);
 }
-
-/*
-	<ControlledBoard
-		allowAddCard={false} // Handle the UI and logic to add a card ourselves
-		allowAddColumn={false} // TODO: Allow this?
-		allowRenameColumn={false}
-		allowRemoveColumn={false}
-		renderCard={(card) => <KanbanCard {...card} />}
-		renderColumnHeader={(column) => (
-			<KanbanColumnHeader
-				{...column}
-				// onCardAdd={handleCardAdded}
-			/>
-		)}
-		// TODO: Change callback shape to pass directly to it the new order of the column ids
-		onColumnDragEnd={(column, _source, destination) => {
-			console.log(column, _source, destination);
-
-			if (!destination?.toPosition) {
-				return;
-			}
-
-			const columns = moveItemToIndex(board.columns, column, destination.toPosition);
-
-			console.log(columns);
-			setBoard({ columns });
-			setColumnsOrder(columns.map(({ id }) => id));
-		}}
-		// TODO: Change callback shape to pass directly to it the new order of the cards ids
-		onCardDragEnd={(card, source, destination) => {
-			console.log(card, source, destination);
-
-			if (!destination?.toColumnId || !destination.toPosition) {
-				return;
-			}
-
-			const toIndex = destination.toPosition;
-
-			// The card was moved within the same column
-			if (source?.fromColumnId === destination.toColumnId) {
-				console.log('// The card was moved within the same column');
-
-				const columns = board.columns.map((column) => {
-					if (column.id !== card.columnId) {
-						return column;
-					}
-
-					return {
-						...column,
-						cards: moveItemToIndex(column.cards, card, toIndex),
-					};
-				});
-
-				console.log(columns);
-				setBoard({ columns });
-
-				return;
-			}
-
-			// The card was moved to another column
-			const columns = board.columns.map((column) => {
-				if (column.id === destination.toColumnId) {
-					return {
-						...column,
-						cards: column.cards.toSpliced(toIndex, 0, card),
-					};
-				}
-
-				return column;
-			});
-
-			console.log(columns);
-			setBoard({ columns });
-			void setFileFrontmatterProperty(card.filePath, columnsKey, destination.toColumnId);
-		}}
-	>
-		{board}
-	</ControlledBoard>
-	*/

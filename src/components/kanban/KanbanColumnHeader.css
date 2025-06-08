@@ -6,3 +6,7 @@
 	margin-left: var(--size-4-1);
 	color: var(--text-faint);
 }
+
+button.fdb-kanban-add-card-button.fdb-kanban-add-card-button {
+	color: var(--text-muted);
+}

@@ -1,4 +1,4 @@
-import { toError } from './errors';
+import { toError } from '@/helpers/errors';
 
 import type { JsonObject, JsonValue } from 'type-fest';
 

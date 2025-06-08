@@ -45,3 +45,9 @@
 		color: var(--text-faint);
 	}
 }
+
+.fdb-kanban-card-contents {
+	&.fdb-hidden {
+		display: none;
+	}
+}

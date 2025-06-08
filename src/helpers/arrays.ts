@@ -25,13 +25,31 @@ export function sortByMatchingOrder<ModelItem, InputItem>({
 	});
 }
 
-export function moveItemToIndex<T extends { id: string | number }>(input: T[], item: T, targetIndex: number): T[] {
-	console.log('before:', input);
+// TODO: Write a unit test for this
+export function moveItemToIndex<T>(input: T[], from: number, to: number): T[] {
+	return input.flatMap((item, index) => {
+		if (index === from) {
+			return [];
+		}
+		if (index === to) {
+			return to > from ? [item, input[from]] : [input[from], item];
+		}
 
-	const array = input.filter(({ id }) => id === item.id);
-	array.splice(targetIndex, 0, item);
+		return item;
+	});
+}
 
-	console.log('after:', array);
+export function pushMissingItems<T>(input: T[], items: T[]): T[] {
+	const result = [...input];
+	for (const item of items) {
+		if (!result.includes(item)) {
+			result.push(item);
+		}
+	}
 
-	return array;
+	return result;
+}
+
+export function unique<T>(array: T[]): T[] {
+	return [...new Set(array)];
 }

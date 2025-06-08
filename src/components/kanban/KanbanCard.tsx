@@ -2,7 +2,7 @@ import { clsx } from 'clsx';
 import { Component, MarkdownRenderer } from 'obsidian';
 import { useEffect, useRef } from 'react';
 
-import { useSettings } from '@/contexts/settings-context';
+import { useViewSettings } from '@/contexts/view-settings-context';
 
 import { IconButton } from '@/components/ui/IconButton';
 
@@ -13,19 +13,29 @@ import { transformTextAtPosition } from '@/helpers/text';
 import { useApp } from '@/hooks/use-app';
 import { useAsyncEffect } from '@/hooks/use-async-effects';
 
+import type { DraggableProvided } from '@hello-pangea/dnd';
 import type { KanbanCardData } from '@/types/kanban';
 
 import './KanbanCard.css';
 
-export function KanbanCard({ title, data, isDragged = false }: KanbanCardData & { isDragged?: boolean }) {
+export function KanbanCard({
+	title,
+	data,
+	dndProps,
+	isDragged = false,
+}: KanbanCardData & { dndProps: DraggableProvided; isDragged?: boolean }) {
 	const app = useApp();
-	const { columnsKey, showCardTitles, showCardFrontmatter, openCardFilesInNew } = useSettings(
-		(settings) => settings.kanban,
-	);
+	const {
+		//
+		showCardTitles,
+		showCardFrontmatter,
+		showCardContents,
+		openCardFilesInNew,
+	} = useViewSettings((settings) => settings.view);
 
-	const contentWrapper = useRef<HTMLDivElement | null>(null);
+	const markdownWrapper = useRef<HTMLDivElement | null>(null);
 
-	// TODO: Extract this!
+	// TODO: Extract this from the component?
 	async function onTaskChecked(event: Event): Promise<void> {
 		const taskInput = event.target as HTMLInputElement;
 		if (!taskInput.classList.contains('task-list-item-checkbox')) {
@@ -61,7 +71,7 @@ export function KanbanCard({ title, data, isDragged = false }: KanbanCardData & 
 		} while (
 			// Check that the ancestor we just jumped too is also a task list
 			currentElement?.classList.contains('contains-task-list') &&
-			currentElement.parentElement !== contentWrapper.current
+			currentElement.parentElement !== markdownWrapper.current
 		);
 
 		if (taskIndex === -1) {
@@ -96,10 +106,10 @@ export function KanbanCard({ title, data, isDragged = false }: KanbanCardData & 
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Only run hook once when component is mounted
 	useEffect(() => {
-		contentWrapper.current?.addEventListener('change', onTaskChecked);
+		markdownWrapper.current?.addEventListener('change', onTaskChecked);
 
 		return () => {
-			contentWrapper.current?.removeEventListener('change', onTaskChecked);
+			markdownWrapper.current?.removeEventListener('change', onTaskChecked);
 		};
 	}, []);
 
@@ -108,29 +118,38 @@ export function KanbanCard({ title, data, isDragged = false }: KanbanCardData & 
 		rendererComponent.current = new Component();
 	}
 
-	useAsyncEffect(async (signal: AbortSignal): Promise<void> => {
-		if (signal.aborted || !contentWrapper.current || !rendererComponent.current) {
-			return;
-		}
-
-		signal.addEventListener('abort', () => {
-			rendererComponent.current?.unload();
-			if (contentWrapper.current) {
-				removeAllChildren(contentWrapper.current);
+	useAsyncEffect(
+		async (signal): Promise<void> => {
+			if (signal.aborted || !markdownWrapper.current || !rendererComponent.current) {
+				return;
 			}
-		});
 
-		await MarkdownRenderer.render(
-			app,
-			data.markdownContent,
-			contentWrapper.current,
-			data.filePath,
-			rendererComponent.current,
-		);
-	});
+			signal.addEventListener('abort', () => {
+				rendererComponent.current?.unload();
+				if (markdownWrapper.current) {
+					removeAllChildren(markdownWrapper.current);
+				}
+			});
+
+			removeAllChildren(markdownWrapper.current);
+			await MarkdownRenderer.render(
+				app,
+				data.markdownContent,
+				markdownWrapper.current,
+				data.filePath,
+				rendererComponent.current,
+			);
+		},
+		[data.markdownContent],
+	);
 
 	return (
-		<div className={clsx('fdb-kanban-card', isDragged && 'is-dragged')}>
+		<div
+			ref={dndProps.innerRef}
+			className={clsx('fdb-kanban-card', isDragged && 'is-dragged')}
+			{...dndProps.draggableProps}
+			{...dndProps.dragHandleProps}
+		>
 			<IconButton
 				className="fdb-kanban-card-edit-button"
 				iconId="pencil"
@@ -138,28 +157,32 @@ export function KanbanCard({ title, data, isDragged = false }: KanbanCardData & 
 					openFileInNewLeaf(app, data.filePath, openCardFilesInNew);
 				}}
 			/>
-
 			<header className="fdb-kanban-card-header">
 				{showCardTitles && <h5 className="fdb-kanban-card-title">{title}</h5>}
-				{showCardFrontmatter &&
-					Object.entries(data.frontmatter).map(([key, value]) => {
-						if (key === columnsKey) {
-							return;
-						}
+				{showCardFrontmatter && (
+					<div className="cm-s-obsidian">
+						{Object.entries(data.frontmatter).map(([key, value]) => {
+							/*
+							if (key === groupingKey) {
+								return;
+							}
+							*/
 
-						return (
-							<p
-								key={key}
-								className="fdb-kanban-card-frontmatter"
-							>
-								{String(value)}
-							</p>
-						);
-					})}
+							return (
+								<span
+									key={key}
+									className="cm-inline-code fdb-kanban-card-frontmatter"
+								>
+									{String(value)}
+								</span>
+							);
+						})}
+					</div>
+				)}
 			</header>
 			<div
-				ref={contentWrapper}
-				className="fdb-kanban-card-contents"
+				ref={markdownWrapper}
+				className={clsx('cm-s-obsidian', 'fdb-kanban-card-contents', !showCardContents && 'fdb-hidden')}
 			/>
 		</div>
 	);

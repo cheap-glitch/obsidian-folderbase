@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 
-import { useSettings } from '@/contexts/settings-context';
+import { SettingsUpdatersContext } from '@/contexts/settings-updaters-context';
 
 import { KanbanBoard } from '@/components/kanban/KanbanBoard';
 import { Table } from '@/components/table/Table';
@@ -8,36 +8,33 @@ import { Table } from '@/components/table/Table';
 import { EventManager } from '@/lib/event-manager';
 
 import type { FileData } from '@/lib/files-data';
-import type { FolderbaseViewSettings } from '@/lib/settings';
 import type { FolderbaseViewMode } from '@/types/settings';
 
-// TODO: Load files contents when switching from initally a table to a kanban view
+// TODO: Load files contents when switching from initially a table to a kanban view
 export function FolderbaseMain({
+	initialMode,
 	initialData,
 	initialKeys,
 	filePath: viewFilePath,
 	folderPath,
-	onSettingsUpdated,
 }: {
+	initialMode: FolderbaseViewMode;
 	initialData: FileData[];
 	initialKeys: Set<string>;
 	filePath: string;
 	folderPath: string;
-	onSettingsUpdated: (settings: FolderbaseViewSettings) => void;
 }) {
-	// The store isn't actually driving most of the component updates – it's mostly used
-	// to keep a single source of truth for every setting at the top of the component hierarchy
-	const settings = useSettings((settings) => settings);
+	const { saveViewMode } = useContext(SettingsUpdatersContext);
 
-	// Propagate the local settings back up to the `TextFileView` instance
-	useEffect(() => {
-		onSettingsUpdated(settings);
-	});
+	const [viewMode, setViewMode] = useState(initialMode);
 
 	function handleSetViewMode({ mode, filePath }: { mode?: FolderbaseViewMode; filePath?: string } = {}) {
-		if (mode && filePath === viewFilePath) {
-			settings.setViewMode(mode);
+		if (!mode || filePath !== viewFilePath) {
+			return;
 		}
+
+		setViewMode(mode);
+		void saveViewMode(mode);
 	}
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Only run hook once when component is mounted
@@ -49,7 +46,7 @@ export function FolderbaseMain({
 		};
 	}, []);
 
-	switch (settings.mode) {
+	switch (viewMode) {
 		case 'table': {
 			return (
 				<Table

@@ -16,8 +16,8 @@ export function Select({
 	onChange: (value: string) => void;
 }) {
 	return (
-		<label className={clsx('fdb-select-label', className)}>
-			{label}
+		<label className={clsx('fdb-select', className)}>
+			<span className="fdb-input-label">{label}</span>
 
 			<select
 				value={value}

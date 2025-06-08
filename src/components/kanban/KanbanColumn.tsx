@@ -1,38 +1,72 @@
-import { KanbanCard } from './KanbanCard';
-import { KanbanColumnHeader } from './KanbanColumnHeader';
+import { Draggable, type DroppableProvided } from '@hello-pangea/dnd';
+import { clsx } from 'clsx';
 
-import type { KanbanCardData, KanbanColumnData } from '@/types/kanban';
+import { KanbanCard } from '@/components/kanban/KanbanCard';
+import { KanbanColumnHeader } from '@/components/kanban/KanbanColumnHeader';
+
+import { capitalize } from '@/helpers/text';
+
+import type { KanbanCardData } from '@/types/kanban';
 
 import './KanbanColumn.css';
 
-export function KanbanColumn({ id, title, cards }: KanbanColumnData & { cards: KanbanCardData[] }) {
+export function KanbanColumn({
+	id,
+	cards,
+	dndProps,
+	isDragged: isColumnDragged,
+	isDraggedOver,
+}: {
+	id: string;
+	// allCards: KanbanCardData[];
+	cards: KanbanCardData[];
+	dndProps: DroppableProvided;
+	isDragged: boolean;
+	isDraggedOver: boolean;
+}) {
+	// const groupingKey = useViewSettings((settings) => settings.kanban.groupingKey);
+	// const columnsCardsOrders = useViewSettings((settings) => settings.kanban.columnsCardsOrders);
+	// const cards = useMemo(() => {
+	// 	return getSortedColumnCards({
+	// 		columnId: id,
+	// 		cards: allCards,
+	// 		groupingKey,
+	// 		columnCardsOrder: columnsCardsOrders[groupingKey]?.[id],
+	// 	});
+	// }, [id, allCards, groupingKey, columnsCardsOrders]);
+
 	return (
-		<div className="fdb-kanban-column">
+		<div
+			ref={dndProps.innerRef}
+			className={clsx('fdb-kanban-column', isDraggedOver && 'is-dragged-over')}
+			{...dndProps.droppableProps}
+		>
 			<KanbanColumnHeader
 				id={id}
-				title={title}
+				title={capitalize(id)}
 				cardsCount={cards.length}
 			/>
-			{/*
-			<Droppable
-				id={`fdb-kanban-column-${id}`}
-			>
-			*/}
 			<div className="fdb-kanban-column-contents">
-				{cards.map((card) => (
-					/*
-					<Draggable
-						key={card.id}
-						id={`fdb-kanban-card-${card.id}`}
-					>
-					*/
-					<KanbanCard
-						key={card.id}
-						{...card}
-					/>
-				))}
+				{cards.map(
+					(card, index) =>
+						card && (
+							<Draggable
+								key={card.id}
+								index={index}
+								draggableId={card.id}
+							>
+								{(provided, { isDragging }) => (
+									<KanbanCard
+										{...card}
+										dndProps={provided}
+										isDragged={isDragging || isColumnDragged}
+									/>
+								)}
+							</Draggable>
+						),
+				)}
+				{dndProps.placeholder}
 			</div>
-			{/* </Droppable> */}
 		</div>
 	);
 }

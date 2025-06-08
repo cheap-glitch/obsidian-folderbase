@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 
+import { useApp } from '@/hooks/use-app';
 import { updateFileFrontMatter } from '@/lib/frontmatter';
-import { useApp } from './use-app';
 
 import type { FrontMatterValue } from '@/types/frontmatter';
 
@@ -11,11 +11,7 @@ export function useUpdateFileFrontmatter() {
 
 	return {
 		ignoredFilePathEvents,
-		setFileFrontmatterProperty: async (
-			filePath: string,
-			key: string,
-			value: FrontMatterValue,
-		): Promise<void> => {
+		setFileFrontmatterProperty: async (filePath: string, key: string, value: FrontMatterValue): Promise<void> => {
 			ignoredFilePathEvents.current.add(filePath);
 
 			try {
