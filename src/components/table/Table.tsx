@@ -29,19 +29,20 @@ import './Table.css';
 
 export function Table({
 	folderPath,
-	initialData,
-	initialKeys,
+	initial,
 }: {
 	folderPath: string;
-	initialData: FileData[];
-	initialKeys: Set<string>;
+	initial: {
+		data: FileData[];
+		keys: Set<string>;
+	};
 }) {
 	const app = useApp();
 	const { ignoredFilePathEvents } = useUpdateFileFrontmatter();
 
-	const [keys, setKeys] = useState(() => new Set(initialKeys));
+	const [keys, setKeys] = useState(() => new Set(initial.keys));
 	const [data, setData] = useState(() => {
-		return initialData.map(({ path, basename, frontmatter }) => ({
+		return initial.data.map(({ path, basename, frontmatter }) => ({
 			file: {
 				path: path,
 				basename: basename,
@@ -50,7 +51,7 @@ export function Table({
 		}));
 	});
 	const [columns, setColumns] = useState(() =>
-		buildColumns(initialKeys, {
+		buildColumns(initial.keys, {
 			onFileLinkClick: (filePath) => {
 				openFileInNewLeaf(app, filePath, 'tab'); // TODO: Make this a setting
 			},

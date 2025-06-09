@@ -8,25 +8,27 @@ import { Table } from '@/components/table/Table';
 import { EventManager } from '@/lib/event-manager';
 
 import type { FileData } from '@/lib/files-data';
+import type { KanbanSettings } from '@/lib/settings';
 import type { FolderbaseViewMode } from '@/types/settings';
 
 // TODO: Load files contents when switching from initially a table to a kanban view
 export function FolderbaseMain({
-	initialMode,
-	initialData,
-	initialKeys,
 	filePath: viewFilePath,
 	folderPath,
+	initial,
 }: {
-	initialMode: FolderbaseViewMode;
-	initialData: FileData[];
-	initialKeys: Set<string>;
 	filePath: string;
 	folderPath: string;
+	initial: {
+		mode: FolderbaseViewMode;
+		data: FileData[];
+		keys: Set<string>;
+		boardSettings: KanbanSettings['board'];
+	};
 }) {
 	const { saveViewMode } = useContext(SettingsUpdatersContext);
 
-	const [viewMode, setViewMode] = useState(initialMode);
+	const [viewMode, setViewMode] = useState(() => initial.mode);
 
 	function handleSetViewMode({ mode, filePath }: { mode?: FolderbaseViewMode; filePath?: string } = {}) {
 		if (!mode || filePath !== viewFilePath) {
@@ -51,19 +53,16 @@ export function FolderbaseMain({
 			return (
 				<Table
 					folderPath={folderPath}
-					initialData={initialData}
-					initialKeys={initialKeys}
+					initial={{
+						data: initial.data,
+						keys: initial.keys,
+					}}
 				/>
 			);
 		}
 
 		case 'kanban': {
-			return (
-				<KanbanBoard
-					initialData={initialData}
-					initialKeys={initialKeys}
-				/>
-			);
+			return <KanbanBoard initial={initial} />;
 		}
 	}
 }

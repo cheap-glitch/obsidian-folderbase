@@ -4,7 +4,6 @@ import { createRoot, type Root } from 'react-dom/client';
 import { ZodError, z } from 'zod/v4';
 
 import { AppContext } from '@/contexts/app-context';
-import { KanbanBoardSettingsContext } from '@/contexts/board-settings-context';
 import { SettingsUpdatersContext } from '@/contexts/settings-updaters-context';
 import { ViewSettingsProvider } from '@/contexts/view-settings-context';
 
@@ -198,52 +197,53 @@ export class FolderbaseView extends TextFileView {
 		this.root?.render(
 			<StrictMode>
 				<AppContext.Provider value={this.app}>
-					<KanbanBoardSettingsContext.Provider value={initialSettings.kanban.board}>
-						<ViewSettingsProvider initialSettings={initialSettings.kanban.view}>
-							<SettingsUpdatersContext
-								value={{
-									saveViewMode: async (mode) => {
-										this.setMode(mode);
+					<ViewSettingsProvider initialSettings={initialSettings.kanban.view}>
+						<SettingsUpdatersContext
+							value={{
+								saveViewMode: async (mode) => {
+									this.setMode(mode);
 
-										await this.updateSavedSettings((settings) => ({
-											...settings,
-											mode,
-										}));
-									},
-									saveKanbanViewSettings: async (viewSettings) =>
-										this.updateSavedSettings((settings) => ({
-											...settings,
-											kanban: {
-												board: settings.kanban.board,
-												view: viewSettings,
-											},
-										})),
-									saveKanbanBoardColumnSettings: async (groupingKey, columnSettings) =>
-										this.updateSavedSettings((settings) => ({
-											...settings,
-											kanban: {
-												view: settings.kanban.view,
-												board: {
-													groupingKey,
-													columns: {
-														...settings.kanban.board.columns,
-														[groupingKey]: columnSettings,
-													},
+									await this.updateSavedSettings((settings) => ({
+										...settings,
+										mode,
+									}));
+								},
+								saveKanbanViewSettings: async (viewSettings) =>
+									this.updateSavedSettings((settings) => ({
+										...settings,
+										kanban: {
+											board: settings.kanban.board,
+											view: viewSettings,
+										},
+									})),
+								saveKanbanBoardColumnSettings: async (groupingKey, columnSettings) =>
+									this.updateSavedSettings((settings) => ({
+										...settings,
+										kanban: {
+											view: settings.kanban.view,
+											board: {
+												groupingKey,
+												columns: {
+													...settings.kanban.board.columns,
+													[groupingKey]: columnSettings,
 												},
 											},
-										})),
+										},
+									})),
+							}}
+						>
+							<FolderbaseMain
+								filePath={filePath}
+								folderPath={folderPath}
+								initial={{
+									mode: initialSettings.mode,
+									data,
+									keys: allFrontmatterKeys, // TODO: Filter this for the kanban board
+									boardSettings: initialSettings.kanban.board,
 								}}
-							>
-								<FolderbaseMain
-									initialMode={initialSettings.mode}
-									initialData={data}
-									initialKeys={allFrontmatterKeys}
-									filePath={filePath}
-									folderPath={folderPath}
-								/>
-							</SettingsUpdatersContext>
-						</ViewSettingsProvider>
-					</KanbanBoardSettingsContext.Provider>
+							/>
+						</SettingsUpdatersContext>
+					</ViewSettingsProvider>
 				</AppContext.Provider>
 			</StrictMode>,
 		);

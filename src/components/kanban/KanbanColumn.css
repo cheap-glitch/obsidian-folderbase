@@ -4,7 +4,7 @@
 
 	border-radius: var(--radius-s);
 
-	&.is-dragged-over {
+	&:has(> .fdb-is-dragged-over) {
 		background-color: var(--background-modifier-hover);
 	}
 }

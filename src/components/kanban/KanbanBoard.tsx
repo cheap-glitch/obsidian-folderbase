@@ -1,7 +1,7 @@
-import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd';
+import { clsx } from 'clsx';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
-import { KanbanBoardSettingsContext } from '@/contexts/board-settings-context';
 import { SettingsUpdatersContext } from '@/contexts/settings-updaters-context';
 import { useViewSettings } from '@/contexts/view-settings-context';
 
@@ -15,19 +15,26 @@ import { useUpdateFileFrontmatter } from '@/hooks/use-update-file-frontmatter';
 import { buildKanbanCards } from '@/lib/kanban';
 
 import type { FileData } from '@/lib/files-data';
-import type { KanbanColumnsSettings } from '@/lib/settings';
+import type { KanbanColumnsSettings, KanbanSettings } from '@/lib/settings';
 import type { KanbanCardData } from '@/types/kanban';
 
 import './KanbanBoard.css';
 
-export function KanbanBoard({ initialData, initialKeys }: { initialData: FileData[]; initialKeys: Set<string> }) {
+export function KanbanBoard({
+	initial,
+}: {
+	initial: {
+		data: FileData[];
+		keys: Set<string>;
+		boardSettings: KanbanSettings['board'];
+	};
+}) {
 	const { setFileFrontmatterProperty } = useUpdateFileFrontmatter();
 	const { saveKanbanViewSettings, saveKanbanBoardColumnSettings } = useContext(SettingsUpdatersContext);
 
-	const initialBoardSettings = useContext(KanbanBoardSettingsContext);
-	const allColumnsKeys = useMemo(() => [...initialKeys], [initialKeys]);
-	const [cards, setCards] = useState<KanbanCardData[]>(() => buildKanbanCards(initialData)); // TODO: use `useMemo()`?
-	const [groupingKey, setGroupingKey] = useState(() => initialBoardSettings.groupingKey);
+	const allColumnsKeys = useMemo(() => [...initial.keys], [initial.keys]);
+	const [cards, setCards] = useState<KanbanCardData[]>(() => buildKanbanCards(initial.data));
+	const [groupingKey, setGroupingKey] = useState(() => initial.boardSettings.groupingKey);
 
 	function getColumnCards(columnId: string): KanbanCardData[] {
 		return cards.filter((card) => card.data.frontmatter[groupingKey] === columnId);
@@ -35,7 +42,7 @@ export function KanbanBoard({ initialData, initialKeys }: { initialData: FileDat
 
 	function getColumnsOrder(key: string): string[] {
 		return pushMissingItems(
-			initialBoardSettings.columns[groupingKey]?.order ?? [],
+			initial.boardSettings.columns[groupingKey]?.order ?? [],
 			unique(cards.map((card) => String(card.data.frontmatter[key]))), // Add potentially missing column IDs at the end
 		);
 	}
@@ -44,7 +51,7 @@ export function KanbanBoard({ initialData, initialKeys }: { initialData: FileDat
 		const result: KanbanColumnsSettings['cardsOrders'] = {};
 		for (const id of columnsOrder) {
 			result[id] = pushMissingItems(
-				initialBoardSettings.columns[key]?.cardsOrders[id] ?? [],
+				initial.boardSettings.columns[key]?.cardsOrders[id] ?? [],
 				getColumnCards(id).map((card) => card.id), // Add potentially missing card IDs at the end
 			);
 		}
@@ -108,7 +115,7 @@ export function KanbanBoard({ initialData, initialKeys }: { initialData: FileDat
 			id: string;
 			index: number;
 		};
-	}) {
+	}): void {
 		setCards(
 			cards.map((card) => {
 				if (card.id !== cardId) {
@@ -131,13 +138,6 @@ export function KanbanBoard({ initialData, initialKeys }: { initialData: FileDat
 		if (card) {
 			void setFileFrontmatterProperty(card.data.filePath, groupingKey, toColumn.id);
 		}
-	}
-
-	function moveCardToPositionInColumn({ columnId, from, to }: { columnId: string; from: number; to: number }) {
-		setColumnsCardsOrders({
-			...columnsCardsOrders,
-			[columnId]: moveItemToIndex(columnsCardsOrders[columnId], from, to),
-		});
 	}
 
 	/*
@@ -183,28 +183,40 @@ export function KanbanBoard({ initialData, initialKeys }: { initialData: FileDat
 			className="fdb-kanban-board"
 		>
 			<DragDropContext
-				onDragEnd={({ reason, source, destination, draggableId: cardId }) => {
+				onDragEnd={({ type, reason, source, destination, draggableId: cardId }) => {
 					if (!destination || reason === 'CANCEL') {
+						return;
+					}
+
+					// A column was moved
+					if (type === 'column') {
+						if (source.index === destination.index) {
+							return;
+						}
+
+						setColumnsOrder(moveItemToIndex(columnsOrder, source.index, destination.index));
+
 						return;
 					}
 
 					const { droppableId: fromColumnId, index: fromIndex } = source;
 					const { droppableId: toColumnId, index: toIndex } = destination;
 
-					// The card was re-ordered within the same column
+					// A card was re-ordered within the same column
 					if (fromColumnId === toColumnId) {
-						if (fromIndex !== toIndex) {
-							moveCardToPositionInColumn({
-								columnId: fromColumnId,
-								from: fromIndex,
-								to: toIndex,
-							});
+						if (fromIndex === toIndex) {
+							return;
 						}
+
+						setColumnsCardsOrders({
+							...columnsCardsOrders,
+							[toColumnId]: moveItemToIndex(columnsCardsOrders[toColumnId], fromIndex, toIndex),
+						});
 
 						return;
 					}
 
-					// The card was moved to another column
+					// A card was moved to another column
 					moveCardToColumn({
 						cardId,
 						fromColumn: { id: fromColumnId },
@@ -230,24 +242,38 @@ export function KanbanBoard({ initialData, initialKeys }: { initialData: FileDat
 						}}
 					/>
 				</div>
-				<div className="fdb-kanban-board-columns">
-					{columnsOrder.map((id) => (
-						<Droppable
-							key={id}
-							droppableId={id}
+				<Droppable
+					type="column"
+					direction="horizontal"
+					droppableId="fdb-kanban-board"
+				>
+					{(dropProvided, { isDraggingOver }) => (
+						<div
+							ref={dropProvided.innerRef}
+							className={clsx('fdb-kanban-board-columns', isDraggingOver && 'fdb-is-dragged-over')}
+							{...dropProvided.droppableProps}
 						>
-							{(provided, { isDraggingOver }) => (
-								<KanbanColumn
-									id={id}
-									cards={getSortedColumnCards(id)}
-									dndProps={provided}
-									isDragged={false} // TODO
-									isDraggedOver={isDraggingOver}
-								/>
-							)}
-						</Droppable>
-					))}
-				</div>
+							{columnsOrder.map((id, index) => (
+								<Draggable
+									key={id}
+									index={index}
+									draggableId={id}
+								>
+									{(dragProvided, { isDragging }) => (
+										<KanbanColumn
+											id={id}
+											cards={getSortedColumnCards(id)}
+											groupingKey={groupingKey}
+											dragProps={dragProvided}
+											isDragged={isDragging}
+										/>
+									)}
+								</Draggable>
+							))}
+							{dropProvided.placeholder}
+						</div>
+					)}
+				</Droppable>
 			</DragDropContext>
 		</div>
 	);

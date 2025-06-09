@@ -21,9 +21,15 @@ import './KanbanCard.css';
 export function KanbanCard({
 	title,
 	data,
-	dndProps,
+	groupingKey,
+	dragProps,
 	isDragged = false,
-}: KanbanCardData & { dndProps: DraggableProvided; isDragged?: boolean }) {
+}: KanbanCardData & {
+	//
+	groupingKey: string;
+	dragProps: DraggableProvided;
+	isDragged?: boolean;
+}) {
 	const app = useApp();
 	const {
 		//
@@ -145,10 +151,10 @@ export function KanbanCard({
 
 	return (
 		<div
-			ref={dndProps.innerRef}
+			ref={dragProps.innerRef}
 			className={clsx('fdb-kanban-card', isDragged && 'is-dragged')}
-			{...dndProps.draggableProps}
-			{...dndProps.dragHandleProps}
+			{...dragProps.draggableProps}
+			{...dragProps.dragHandleProps}
 		>
 			<IconButton
 				className="fdb-kanban-card-edit-button"
@@ -162,11 +168,9 @@ export function KanbanCard({
 				{showCardFrontmatter && (
 					<div className="cm-s-obsidian">
 						{Object.entries(data.frontmatter).map(([key, value]) => {
-							/*
 							if (key === groupingKey) {
 								return;
 							}
-							*/
 
 							return (
 								<span
