@@ -20,7 +20,7 @@ import { buildColumns } from '@/lib/table';
 
 import type { Row, SortingState } from '@tanstack/react-table';
 import type { TFile } from 'obsidian';
-import type { FileData } from '@/lib/files-data';
+import type { FileData } from '@/lib/data';
 import type { FormattedFrontMatterValue } from '@/types/frontmatter';
 import type { ColumnData } from '@/types/table';
 

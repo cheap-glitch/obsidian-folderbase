@@ -14,7 +14,7 @@ import { getDefaultFolderPath } from '@/helpers/files';
 import { safeParseJsonObject } from '@/helpers/json';
 import { getSetValueAtIndex } from '@/helpers/sets';
 import { FDB_DEFAULT_VIEW_MODE, FDB_VIEW_DEFAULT_TITLES, FDB_VIEW_ICONS, FDB_VIEW_ID } from '@/lib/constants';
-import { collateFilesData } from '@/lib/files-data';
+import { collateFilesData } from '@/lib/data';
 import { FOLDERBASE_SETTINGS_VERSION, FolderbaseViewSettingsSchema } from '@/lib/settings';
 
 import type { FolderbaseFullSettings, FolderbaseSettings } from '@/lib/settings';

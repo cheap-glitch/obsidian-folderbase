@@ -1,50 +1,8 @@
 import { sortByMatchingOrder } from '@/helpers/arrays';
 import { __CUSTOM__CRENEAUX } from './sorting';
 
-import type { FileData } from '@/lib/files-data';
+import type { FileData } from '@/lib/data';
 import type { KanbanCardData } from '@/types/kanban';
-
-/*
-export function buildInitialColumns(
-	cards: KanbanCardData[],
-	{
-		groupingKey,
-		columnsOrder,
-		columnsCardsOrders,
-	}: {
-		//
-		groupingKey: string;
-		columnsOrder?: string[];
-		columnsCardsOrders?: Record<string, string[]>;
-	},
-): KanbanColumnData[] {
-	const columnIds = new Set<string>(cards.map((card) => String(card.data.frontmatter[groupingKey])));
-	const sortedColumnIds = columnsOrder
-		? sortByMatchingOrder({
-				model: columnsOrder,
-				input: [...columnIds],
-			})
-		: [...columnIds];
-
-	return sortedColumnIds.map((id) => {
-		const ordering = columnsCardsOrders?.[id];
-		const columnCards = cards.filter((card) => card.data.frontmatter[groupingKey] === id);
-		const sortedColumnCards = Array.isArray(ordering)
-			? sortByMatchingOrder<string, KanbanCardData>({
-					model: ordering,
-					input: columnCards,
-					matcher: (card) => card.id,
-				})
-			: columnCards;
-
-		return {
-			id,
-			title: capitalize(id),
-			cardsIds: sortedColumnCards.map((card) => card.id),
-		};
-	});
-}
-*/
 
 export function getSortedColumnCards({
 	columnId,

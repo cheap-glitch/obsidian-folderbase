@@ -14,7 +14,7 @@ import { useAsyncEffect } from '@/hooks/use-async-effects';
 import { useUpdateFileFrontmatter } from '@/hooks/use-update-file-frontmatter';
 import { buildKanbanCards } from '@/lib/kanban';
 
-import type { FileData } from '@/lib/files-data';
+import type { FileData } from '@/lib/data';
 import type { KanbanColumnsSettings, KanbanSettings } from '@/lib/settings';
 import type { KanbanCardData } from '@/types/kanban';
 

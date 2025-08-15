@@ -7,7 +7,7 @@ import { Table } from '@/components/table/Table';
 
 import { EventManager } from '@/lib/event-manager';
 
-import type { FileData } from '@/lib/files-data';
+import type { FileData } from '@/lib/data';
 import type { KanbanSettings } from '@/lib/settings';
 import type { FolderbaseViewMode } from '@/types/settings';
 
